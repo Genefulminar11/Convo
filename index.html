@@ -127,11 +127,45 @@
               <i class="fas fa-video"></i>
             </button>
           </div>
+          <button class="btn-header-action hidden" id="btnSearchChat" title="Search in conversation">
+            <i class="fas fa-search"></i>
+          </button>
+          <div class="header-menu-wrap hidden" id="headerMenuWrap">
+            <button class="btn-header-action" id="btnHeaderMenu" title="More options">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <div class="header-dropdown hidden" id="headerDropdown">
+              <button class="header-dropdown-item" id="btnDeleteConvo">
+                <i class="fas fa-trash"></i> Delete Conversation
+              </button>
+              <button class="header-dropdown-item danger" id="btnBlockUser">
+                <i class="fas fa-ban"></i> Block User
+              </button>
+              <button class="header-dropdown-item hidden" id="btnUnblockUser">
+                <i class="fas fa-unlock"></i> Unblock User
+              </button>
+            </div>
+          </div>
+          <button class="btn-header-action btn-clear-all hidden" id="btnClearAllMsgs" title="Clear all messages">
+            <i class="fas fa-trash-alt"></i>
+          </button>
           <span class="online-count" id="onlineCount">
             <i class="fas fa-users me-1"></i> <span id="userCountNum">0</span>
           </span>
         </div>
       </header>
+
+      <!-- Chat Search Bar -->
+      <div class="chat-search-bar hidden" id="chatSearchBar">
+        <div class="chat-search-inner">
+          <i class="fas fa-search"></i>
+          <input type="text" id="chatSearchInput" placeholder="Search in conversation..." autocomplete="off">
+          <span class="chat-search-count hidden" id="chatSearchCount">0/0</span>
+          <button class="chat-search-nav" id="btnSearchPrev" title="Previous"><i class="fas fa-chevron-up"></i></button>
+          <button class="chat-search-nav" id="btnSearchNext" title="Next"><i class="fas fa-chevron-down"></i></button>
+          <button class="chat-search-close" id="btnSearchClose" title="Close search"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
 
       <!-- Messages Area -->
       <div class="chat-messages" id="chatMessages">
@@ -143,8 +177,18 @@
         <!-- Messages populated by JS -->
       </div>
 
+      <!-- Blocked Banner -->
+      <div class="blocked-banner hidden" id="blockedBanner">
+        <div class="blocked-banner-text">
+          <i class="fas fa-ban"></i>
+          <span id="blockedBannerMsg">You blocked this user</span>
+        </div>
+        <p class="blocked-banner-sub" id="blockedBannerSub">You can't message or call them in this chat, and you won't receive their messages or calls.</p>
+        <button class="blocked-banner-btn" id="btnBannerUnblock">Unblock</button>
+      </div>
+
       <!-- Message Input -->
-      <div class="chat-input-area">
+      <div class="chat-input-area" id="chatInputArea">
         <div class="reply-bar hidden" id="replyBar">
           <div class="reply-bar-info">
             <i class="fas fa-reply reply-bar-icon"></i>

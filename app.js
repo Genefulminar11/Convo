@@ -152,6 +152,8 @@ let contactsData = [];
 let onlineUserIds = new Set();
 let selectedFile = null;
 let replyingTo = null; // { id, username/sender_name, content, type: 'general'|'dm' }
+let blockedUsers = new Set(); // IDs of users current user has blocked
+let blockedByUsers = new Set(); // IDs of users who blocked current user
 
 // Try to restore session from localStorage
 try {
@@ -177,6 +179,13 @@ function getInitials(name) {
     .join('')
     .toUpperCase()
     .substring(0, 2);
+}
+
+function getAvatarHtml(userId, displayName) {
+  if (!sb || !userId) return `<span>${sanitize(getInitials(displayName))}</span>`;
+  const { data } = sb.storage.from('avatars').getPublicUrl(`${userId}/avatar`);
+  const url = data.publicUrl;
+  return `<span class="avatar-fallback">${sanitize(getInitials(displayName))}</span><img src="${url}" alt="" class="avatar-img" onerror="this.style.display='none'" onload="this.previousElementSibling.style.display='none';this.style.display='block'">`;
 }
 
 function formatTime(dateStr) {
@@ -701,6 +710,8 @@ logoutConfirm.addEventListener('click', () => {
   currentView = 'general';
   contactsData = [];
   onlineUserIds.clear();
+  blockedUsers.clear();
+  blockedByUsers.clear();
   userNameDisplay.textContent = 'Guest';
   userIdSmall.textContent = '';
   document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
@@ -783,6 +794,283 @@ adminModal.addEventListener('click', (e) => {
   if (e.target === adminModal) adminModal.classList.add('hidden');
 });
 
+// ===================== Chat Search =====================
+const btnSearchChat = document.getElementById('btnSearchChat');
+const chatSearchBar = document.getElementById('chatSearchBar');
+const chatSearchInput = document.getElementById('chatSearchInput');
+const chatSearchCount = document.getElementById('chatSearchCount');
+const btnSearchPrev = document.getElementById('btnSearchPrev');
+const btnSearchNext = document.getElementById('btnSearchNext');
+const btnSearchClose = document.getElementById('btnSearchClose');
+
+let searchMatches = [];
+let searchIndex = -1;
+
+btnSearchChat.addEventListener('click', () => {
+  chatSearchBar.classList.toggle('hidden');
+  if (!chatSearchBar.classList.contains('hidden')) {
+    chatSearchInput.value = '';
+    clearSearchHighlights();
+    chatSearchCount.classList.add('hidden');
+    chatSearchInput.focus();
+  } else {
+    clearSearchHighlights();
+  }
+});
+
+btnSearchClose.addEventListener('click', () => {
+  chatSearchBar.classList.add('hidden');
+  clearSearchHighlights();
+});
+
+chatSearchInput.addEventListener('input', () => {
+  const q = chatSearchInput.value.trim().toLowerCase();
+  clearSearchHighlights();
+  if (!q) {
+    chatSearchCount.classList.add('hidden');
+    return;
+  }
+  const msgs = chatMessages.querySelectorAll('.message');
+  searchMatches = [];
+  msgs.forEach(el => {
+    const bubble = el.querySelector('.message-bubble');
+    if (bubble && bubble.textContent.toLowerCase().includes(q)) {
+      searchMatches.push(el);
+      el.classList.add('message-highlight');
+    }
+  });
+  chatSearchCount.classList.remove('hidden');
+  if (searchMatches.length > 0) {
+    searchIndex = searchMatches.length - 1;
+    updateSearchNav();
+  } else {
+    searchIndex = -1;
+    chatSearchCount.textContent = '0/0';
+  }
+});
+
+btnSearchNext.addEventListener('click', () => {
+  if (searchMatches.length === 0) return;
+  searchIndex = (searchIndex + 1) % searchMatches.length;
+  updateSearchNav();
+});
+
+btnSearchPrev.addEventListener('click', () => {
+  if (searchMatches.length === 0) return;
+  searchIndex = (searchIndex - 1 + searchMatches.length) % searchMatches.length;
+  updateSearchNav();
+});
+
+function updateSearchNav() {
+  searchMatches.forEach(el => el.classList.remove('message-highlight-active'));
+  if (searchMatches[searchIndex]) {
+    searchMatches[searchIndex].classList.add('message-highlight-active');
+    searchMatches[searchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  chatSearchCount.textContent = `${searchIndex + 1}/${searchMatches.length}`;
+}
+
+function clearSearchHighlights() {
+  searchMatches.forEach(el => {
+    el.classList.remove('message-highlight', 'message-highlight-active');
+  });
+  searchMatches = [];
+  searchIndex = -1;
+}
+
+// ===================== Header Menu (3-dot) =====================
+const headerMenuWrap = document.getElementById('headerMenuWrap');
+const btnHeaderMenu = document.getElementById('btnHeaderMenu');
+const headerDropdown = document.getElementById('headerDropdown');
+const btnDeleteConvo = document.getElementById('btnDeleteConvo');
+const btnBlockUser = document.getElementById('btnBlockUser');
+const btnUnblockUser = document.getElementById('btnUnblockUser');
+const blockedBanner = document.getElementById('blockedBanner');
+const blockedBannerMsg = document.getElementById('blockedBannerMsg');
+const blockedBannerSub = document.getElementById('blockedBannerSub');
+const btnBannerUnblock = document.getElementById('btnBannerUnblock');
+const chatInputArea = document.getElementById('chatInputArea');
+
+// Show/hide blocked banner + input area based on block state
+function updateBlockedUI() {
+  if (typeof currentView === 'string') {
+    // General chat — always show input, hide banner
+    blockedBanner.classList.add('hidden');
+    chatInputArea.classList.remove('hidden');
+    return;
+  }
+  const contactId = currentView.contactId;
+  const contactName = currentView.contactName;
+
+  if (blockedUsers.has(contactId)) {
+    // Current user blocked this person
+    blockedBannerMsg.textContent = `You blocked ${contactName}`;
+    blockedBannerSub.textContent = "You can't message or call them in this chat, and you won't receive their messages or calls.";
+    btnBannerUnblock.textContent = 'Unblock';
+    btnBannerUnblock.classList.remove('hidden');
+    blockedBanner.classList.remove('hidden');
+    chatInputArea.classList.add('hidden');
+    callButtons.classList.add('hidden');
+  } else if (blockedByUsers.has(contactId)) {
+    // This person blocked the current user
+    blockedBannerMsg.textContent = "You can't reply to this conversation";
+    blockedBannerSub.textContent = "This user is no longer available.";
+    btnBannerUnblock.classList.add('hidden');
+    blockedBanner.classList.remove('hidden');
+    chatInputArea.classList.add('hidden');
+    callButtons.classList.add('hidden');
+  } else {
+    blockedBanner.classList.add('hidden');
+    chatInputArea.classList.remove('hidden');
+  }
+}
+
+// Banner unblock button
+btnBannerUnblock.addEventListener('click', async () => {
+  if (typeof currentView === 'string') return;
+  const contactId = currentView.contactId;
+  await sb.from('blocked_users').delete()
+    .eq('blocker_id', currentUser.id)
+    .eq('blocked_id', contactId);
+  blockedUsers.delete(contactId);
+  sendCallSignal(contactId, 'user-unblocked', {
+    unblockedBy: currentUser.id
+  });
+  btnUnblockUser.classList.add('hidden');
+  btnBlockUser.classList.remove('hidden');
+  updateBlockedUI();
+});
+
+btnHeaderMenu.addEventListener('click', (e) => {
+  e.stopPropagation();
+  headerDropdown.classList.toggle('hidden');
+});
+
+document.addEventListener('click', () => {
+  headerDropdown.classList.add('hidden');
+});
+
+headerDropdown.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+// ---- Delete Conversation ----
+btnDeleteConvo.addEventListener('click', () => {
+  headerDropdown.classList.add('hidden');
+  if (typeof currentView === 'string') return;
+  showConfirmAction(
+    'Delete Conversation',
+    `Delete all messages with <span class="highlight-name">@${sanitize(currentView.contactName)}</span>? This cannot be undone.`,
+    async () => {
+      const contactId = currentView.contactId;
+      // Delete all DM messages between both users
+      await sb.from('private_messages').delete()
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${currentUser.id})`);
+      // Remove contact from both sides
+      await sb.from('contacts').delete()
+        .or(`and(user_id.eq.${currentUser.id},contact_id.eq.${contactId}),and(user_id.eq.${contactId},contact_id.eq.${currentUser.id})`);
+      // Notify the other user in real-time
+      sendCallSignal(contactId, 'convo-deleted', {
+        deletedBy: currentUser.id,
+        deletedByName: currentUser.username
+      });
+      // Remove from local contacts and go back
+      contactsData = contactsData.filter(c => c.contact_id !== contactId);
+      openGeneralChat();
+    }
+  );
+});
+
+// ---- Block User ----
+btnBlockUser.addEventListener('click', () => {
+  headerDropdown.classList.add('hidden');
+  if (typeof currentView === 'string') return;
+  showConfirmAction(
+    'Block User',
+    `Block <span class="highlight-name">@${sanitize(currentView.contactName)}</span>? They won't be able to find or message you.`,
+    async () => {
+      const contactId = currentView.contactId;
+      // Insert block record
+      await sb.from('blocked_users').insert([{
+        blocker_id: currentUser.id,
+        blocked_id: contactId
+      }]);
+      blockedUsers.add(contactId);
+      // Remove the blocked user's contact entry for us (so they disappear from THEIR sidebar)
+      await sb.from('contacts').delete()
+        .eq('user_id', contactId)
+        .eq('contact_id', currentUser.id);
+      // Notify the other user in real-time to remove us from their sidebar
+      sendCallSignal(contactId, 'convo-deleted', {
+        deletedBy: currentUser.id,
+        deletedByName: currentUser.username
+      });
+      // Notify the other user they are blocked so they can't send messages
+      sendCallSignal(contactId, 'user-blocked', {
+        blockedBy: currentUser.id
+      });
+      // Update menu to show unblock
+      btnBlockUser.classList.add('hidden');
+      btnUnblockUser.classList.remove('hidden');
+      updateBlockedUI();
+    }
+  );
+});
+
+// ---- Unblock User ----
+btnUnblockUser.addEventListener('click', () => {
+  headerDropdown.classList.add('hidden');
+  if (typeof currentView === 'string') return;
+  showConfirmAction(
+    'Unblock User',
+    `Unblock <span class="highlight-name">@${sanitize(currentView.contactName)}</span>? They will be able to find and message you again.`,
+    async () => {
+      const contactId = currentView.contactId;
+      await sb.from('blocked_users').delete()
+        .eq('blocker_id', currentUser.id)
+        .eq('blocked_id', contactId);
+      blockedUsers.delete(contactId);
+      // Notify the other user they are unblocked
+      sendCallSignal(contactId, 'user-unblocked', {
+        unblockedBy: currentUser.id
+      });
+      // Update menu to show block
+      btnUnblockUser.classList.add('hidden');
+      btnBlockUser.classList.remove('hidden');
+      updateBlockedUI();
+    }
+  );
+});
+
+// ---- Confirm Action Dialog ----
+function showConfirmAction(title, message, onConfirm) {
+  // Remove existing overlay if any
+  const existing = document.getElementById('confirmActionOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-action-overlay';
+  overlay.id = 'confirmActionOverlay';
+  overlay.innerHTML = `
+    <div class="confirm-action-box">
+      <h4>${title}</h4>
+      <p>${message}</p>
+      <div class="confirm-action-btns">
+        <button class="btn-action-cancel" id="btnActionCancel">Cancel</button>
+        <button class="btn-action-confirm" id="btnActionConfirm">Confirm</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('btnActionCancel').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('btnActionConfirm').addEventListener('click', async () => {
+    overlay.remove();
+    await onConfirm();
+  });
+}
+
 // ===================== Message Rendering =====================
 function renderFileContent(fileDataStr) {
   try {
@@ -796,13 +1084,16 @@ function renderFileContent(fileDataStr) {
 
 function createMessageEl(msg) {
   const isOwn = currentUser && msg.user_id === currentUser.id;
+  const isAdmin = currentUser && currentUser.is_admin;
   const div = document.createElement('div');
   div.className = `message ${isOwn ? 'own' : ''}`;
+  div.dataset.msgId = msg.id;
   const fileHtml = msg.file_data ? renderFileContent(msg.file_data) : '';
   const textHtml = msg.content ? `<div class="message-bubble">${sanitize(msg.content)}</div>` : '';
   const replyHtml = msg.reply_to_content ? `<div class="reply-quote"><span class="reply-quote-name">${sanitize(msg.reply_to_username || 'User')}</span><span class="reply-quote-text">${sanitize(msg.reply_to_content)}</span></div>` : '';
+  const adminDeleteHtml = isAdmin ? `<button class="btn-admin-delete" title="Delete message" data-msg-id="${msg.id}"><i class="fas fa-trash"></i></button>` : '';
   div.innerHTML = `
-    <div class="message-avatar">${sanitize(getInitials(msg.username))}</div>
+    <div class="message-avatar">${getAvatarHtml(msg.user_id, msg.username)}</div>
     <div class="message-content">
       ${replyHtml}
       ${textHtml}
@@ -812,6 +1103,7 @@ function createMessageEl(msg) {
         <span class="message-time">${formatTime(msg.created_at)}</span>
       </div>
     </div>
+    ${adminDeleteHtml}
     <button class="btn-reply" title="Reply" data-msg-id="${msg.id}" data-msg-user="${sanitize(msg.username)}" data-msg-content="${sanitize(msg.content || '')}" data-msg-type="general">
       <i class="fas fa-reply"></i>
     </button>
@@ -846,6 +1138,41 @@ async function loadMessages() {
 
   scrollToBottom();
 }
+
+// ===================== Admin: Delete Messages =====================
+const btnClearAllMsgs = document.getElementById('btnClearAllMsgs');
+
+// Single message delete (admin only)
+chatMessages.addEventListener('click', async (e) => {
+  const delBtn = e.target.closest('.btn-admin-delete');
+  if (!delBtn || !currentUser || !currentUser.is_admin) return;
+  const msgId = delBtn.dataset.msgId;
+  if (!msgId) return;
+  const { error } = await sb.from('messages').delete().eq('id', msgId);
+  if (error) console.error('Delete message error:', error);
+});
+
+// Clear all messages (admin only)
+btnClearAllMsgs.addEventListener('click', () => {
+  if (!currentUser || !currentUser.is_admin) return;
+  showConfirmAction(
+    'Clear All Messages',
+    'Delete <span class="highlight-name">all messages</span> in the general chat? This cannot be undone.',
+    async () => {
+      const { error } = await sb.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) {
+        console.error('Clear all error:', error);
+        return;
+      }
+      chatMessages.innerHTML = '';
+      const welcomeMsg = document.createElement('div');
+      welcomeMsg.className = 'system-message';
+      welcomeMsg.id = 'welcomeMsg';
+      welcomeMsg.innerHTML = '<i class="fas fa-hand-wave"></i> Welcome to <strong>Convo</strong>! Messages are loaded in real-time.';
+      chatMessages.appendChild(welcomeMsg);
+    }
+  );
+});
 
 // ===================== Reply =====================
 const replyBar = document.getElementById('replyBar');
@@ -922,6 +1249,11 @@ messageForm.addEventListener('submit', async (e) => {
       messageInput.value = content;
     }
   } else {
+    // Check if blocked before sending DM
+    if (blockedByUsers.has(currentView.contactId)) {
+      messageInput.value = content;
+      return;
+    }
     const { error } = await sb
       .from('private_messages')
       .insert([{
@@ -955,6 +1287,16 @@ function subscribeToMessages() {
       if (currentView === 'general') {
         chatMessages.appendChild(createMessageEl(payload.new));
         scrollToBottom();
+      }
+    })
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'messages'
+    }, (payload) => {
+      if (currentView === 'general') {
+        const el = chatMessages.querySelector(`[data-msg-id="${payload.old.id}"]`);
+        if (el) el.remove();
       }
     })
     .subscribe();
@@ -1029,24 +1371,27 @@ async function searchUsers(query) {
     .select('id, username')
     .ilike('username', `%${query}%`)
     .neq('id', currentUser.id)
-    .limit(10);
+    .limit(20);
 
   if (error || !data) {
     searchResults.classList.add('hidden');
     return;
   }
 
-  if (data.length === 0) {
+  // Filter out users who have blocked the current user
+  const filtered = data.filter(u => !blockedByUsers.has(u.id));
+
+  if (filtered.length === 0) {
     searchResults.innerHTML = '<div class="search-empty"><i class="fas fa-user-slash me-1"></i> No users found</div>';
     searchResults.classList.remove('hidden');
     return;
   }
 
-  searchResults.innerHTML = data.map(u => {
+  searchResults.innerHTML = filtered.map(u => {
     const isContact = contactsData.some(c => c.contact_id === u.id);
     return `
       <div class="search-result-item" data-user-id="${sanitize(u.id)}" data-username="${sanitize(u.username)}">
-        <div class="search-result-avatar">${sanitize(getInitials(u.username))}</div>
+        <div class="search-result-avatar">${getAvatarHtml(u.id, u.username)}</div>
         <div class="search-result-info">
           <span class="search-result-name">${sanitize(u.username)}</span>
           <span class="search-result-id">ID: ${sanitize(u.id)}</span>
@@ -1101,6 +1446,28 @@ async function loadContacts() {
 
   contactsData = data || [];
   renderContacts();
+}
+
+async function loadBlockedUsers() {
+  if (!sb || !currentUser) return;
+
+  // Users I have blocked
+  const { data: blocked } = await sb
+    .from('blocked_users')
+    .select('blocked_id')
+    .eq('blocker_id', currentUser.id);
+
+  blockedUsers.clear();
+  (blocked || []).forEach(b => blockedUsers.add(b.blocked_id));
+
+  // Users who have blocked me
+  const { data: blockedBy } = await sb
+    .from('blocked_users')
+    .select('blocker_id')
+    .eq('blocked_id', currentUser.id);
+
+  blockedByUsers.clear();
+  (blockedBy || []).forEach(b => blockedByUsers.add(b.blocker_id));
 }
 
 async function addContact(contactId, contactName) {
@@ -1167,7 +1534,7 @@ function renderContacts() {
       <div class="conv-item ${isActive ? 'active' : ''}" data-contact-id="${sanitize(c.contact_id)}" data-contact-name="${sanitize(c.contact_name)}">
         <div class="conv-icon">
           ${isOnline ? '<span class="contact-online-dot"></span>' : ''}
-          <span>${sanitize(getInitials(c.contact_name))}</span>
+          ${getAvatarHtml(c.contact_id, c.contact_name)}
         </div>
         <div class="conv-info">
           <span class="conv-name">${sanitize(c.contact_name)}</span>
@@ -1208,6 +1575,20 @@ function openDM(contactId, contactName) {
   document.getElementById('onlineCount').classList.add('hidden');
 
   callButtons.classList.remove('hidden');
+  btnSearchChat.classList.remove('hidden');
+  headerMenuWrap.classList.remove('hidden');
+  chatSearchBar.classList.add('hidden');
+  clearSearchHighlights();
+  document.getElementById('btnClearAllMsgs').classList.add('hidden');
+
+  // Toggle block/unblock button based on block state
+  if (blockedUsers.has(contactId)) {
+    btnBlockUser.classList.add('hidden');
+    btnUnblockUser.classList.remove('hidden');
+  } else {
+    btnBlockUser.classList.remove('hidden');
+    btnUnblockUser.classList.add('hidden');
+  }
 
   const dmDot = document.getElementById('dmStatusDot');
   const isOnline = onlineUserIds.has(contactId);
@@ -1222,7 +1603,10 @@ function openDM(contactId, contactName) {
   closeSidebar();
 
   messageInput.placeholder = `Message ${contactName}...`;
-  messageInput.focus();
+  updateBlockedUI();
+  if (!blockedUsers.has(contactId) && !blockedByUsers.has(contactId)) {
+    messageInput.focus();
+  }
 }
 
 function openGeneralChat() {
@@ -1233,6 +1617,21 @@ function openGeneralChat() {
   chatRoomDesc.textContent = 'Public chat room – say hello!';
   btnBackChat.classList.add('hidden');
   document.getElementById('onlineCount').classList.remove('hidden');
+  callButtons.classList.add('hidden');
+  btnSearchChat.classList.add('hidden');
+  headerMenuWrap.classList.add('hidden');
+  chatSearchBar.classList.add('hidden');
+  clearSearchHighlights();
+  headerDropdown.classList.add('hidden');
+
+  const btnClear = document.getElementById('btnClearAllMsgs');
+  if (currentUser && currentUser.is_admin) {
+    btnClear.classList.remove('hidden');
+  } else {
+    btnClear.classList.add('hidden');
+  }
+
+  updateBlockedUI();
 
   convGeneral.classList.add('active');
   renderContacts();
@@ -1300,7 +1699,7 @@ function createDMMessageEl(msg) {
   const textHtml = msg.content ? `<div class="message-bubble">${sanitize(msg.content)}</div>` : '';
   const replyHtml = msg.reply_to_content ? `<div class="reply-quote"><span class="reply-quote-name">${sanitize(msg.reply_to_username || 'User')}</span><span class="reply-quote-text">${sanitize(msg.reply_to_content)}</span></div>` : '';
   div.innerHTML = `
-    <div class="message-avatar">${sanitize(getInitials(msg.sender_name))}</div>
+    <div class="message-avatar">${getAvatarHtml(msg.sender_id, msg.sender_name)}</div>
     <div class="message-content">
       ${replyHtml}
       ${textHtml}
@@ -1325,7 +1724,7 @@ const dmToastMsg = document.getElementById('dmToastMsg');
 let toastTimeout = null;
 
 function showDMNotification(senderName, content, senderId) {
-  dmToastAvatar.textContent = getInitials(senderName);
+  dmToastAvatar.innerHTML = getAvatarHtml(senderId, senderName);
   dmToastName.textContent = senderName;
   dmToastMsg.textContent = content || '📎 Sent an attachment';
   dmToast.dataset.senderId = senderId;
@@ -1380,6 +1779,9 @@ function subscribeToDMs() {
       if (msg.sender_id !== currentUser.id && msg.receiver_id !== currentUser.id) return;
 
       const isFromOther = msg.sender_id !== currentUser.id;
+
+      // Ignore messages from users who we have blocked or who blocked us
+      if (isFromOther && (blockedUsers.has(msg.sender_id) || blockedByUsers.has(msg.sender_id))) return;
 
       // If someone new messages us, auto-add them as a contact
       if (isFromOther) {
@@ -1487,6 +1889,33 @@ function subscribeToCallSignals() {
             reply_to_username: null
           }]);
         }
+      }
+    })
+    .on('broadcast', { event: 'convo-deleted' }, ({ payload }) => {
+      if (!payload || !payload.deletedBy) return;
+      const deletedBy = payload.deletedBy;
+      // Remove that user from local contacts
+      contactsData = contactsData.filter(c => c.contact_id !== deletedBy);
+      renderContacts();
+      // If currently viewing that DM, go back to general
+      if (currentView !== 'general' && currentView.contactId === deletedBy) {
+        openGeneralChat();
+      }
+    })
+    .on('broadcast', { event: 'user-blocked' }, ({ payload }) => {
+      if (!payload || !payload.blockedBy) return;
+      blockedByUsers.add(payload.blockedBy);
+      // If currently viewing the blocker's DM, update UI
+      if (currentView !== 'general' && currentView.contactId === payload.blockedBy) {
+        updateBlockedUI();
+      }
+    })
+    .on('broadcast', { event: 'user-unblocked' }, ({ payload }) => {
+      if (!payload || !payload.unblockedBy) return;
+      blockedByUsers.delete(payload.unblockedBy);
+      // If currently viewing the unblocker's DM, update UI
+      if (currentView !== 'general' && currentView.contactId === payload.unblockedBy) {
+        updateBlockedUI();
       }
     })
     .on('broadcast', { event: 'call-declined' }, async ({ payload }) => {
@@ -1803,6 +2232,7 @@ btnToggleVideo.addEventListener('click', async () => {
 function initChat() {
   loadMessages();
   loadContacts();
+  loadBlockedUsers();
   subscribeToMessages();
   subscribeToDMs();
   subscribeToPresence();

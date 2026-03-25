@@ -410,6 +410,9 @@
 
       const filePath = `${currentUser.id}/avatar`;
 
+      // Try to create bucket if it doesn't exist (may fail with anon key - that's OK)
+      await sb.storage.createBucket('avatars', { public: true, fileSizeLimit: 2097152 }).catch(() => {});
+
       const { error } = await sb.storage
         .from('avatars')
         .upload(filePath, file, { cacheControl: '60', upsert: true });
