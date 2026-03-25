@@ -527,6 +527,15 @@ body, html {
 
 .chat-header-info {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .chat-room-name {
@@ -535,6 +544,9 @@ body, html {
   font-weight: 700;
   color: #0d6efd;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-room-name i {
@@ -2367,7 +2379,8 @@ html:not([data-theme]) .logout-modal-box {
 
 @media (max-width: 575.98px) {
   .chat-header {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.75rem;
+    gap: 0.5rem;
   }
 
   .chat-messages {
@@ -2384,6 +2397,16 @@ html:not([data-theme]) .logout-modal-box {
 
   .message-bubble {
     font-size: 0.85rem;
+  }
+
+  .btn-call {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .chat-room-desc {
+    display: none;
   }
 }
 
