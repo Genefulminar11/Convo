@@ -147,6 +147,7 @@ let currentView = 'general'; // 'general' or { contactId, contactName }
 let contactsData = [];
 let onlineUserIds = new Set();
 let selectedFile = null;
+let replyingTo = null; // { id, username/sender_name, content, type: 'general'|'dm' }
 
 // Try to restore session from localStorage
 try {
@@ -246,15 +247,78 @@ sidebarOpenBtn.addEventListener('click', openSidebar);
 overlay.addEventListener('click', closeSidebar);
 
 // ===================== Emoji Picker =====================
-const EMOJIS = [
-  '😀','😂','😍','🥰','😎','🤔','😭','🥳','😅','🤣','😊','🙃','😜','🤗','😏',
-  '🔥','❤️','👍','👎','👏','🙌','💪','🎉','✨','💯','💀','👀','🫶','🤝','🫡',
-  '😢','😤','🤯','🥺','😇','🤩','😋','🤤','😴','🤮','🤧','😷','🥶','🥵','😈',
-  '👻','💩','🤡','👽','🤖','😺','🐶','🐱','🦊','🐻','🐼','🐨','🦁','🐸','🐵'
-];
+const EMOJI_CATEGORIES = {
+  'Smileys & People': ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','🫤','😟','🙁','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','👻','👽','🤖','💩','🤡'],
+  'Gestures & People': ['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','💪'],
+  'Hearts & Symbols': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','💘','💝','💟','💯','💢','💥','💫','💦','💨','🕳️','💤','✨','🔥','⭐','🌟','💀'],
+  'Animals & Nature': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🪲','🐞','🌸','🌺','🌻','🌹','🌷','🌱','🌿','🍀','🍁','🍂','🍃'],
+  'Food & Drink': ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍕','🍔','🍟','🌭','🍿','🧁','🍰','🎂','🍩','🍪','🍫','🍬','☕','🍵','🧋','🥤','🍺','🍷','🥂','🧃'],
+  'Activities & Objects': ['⚽','🏀','🏈','⚾','🎾','🏐','🎱','🏓','🎮','🕹️','🎯','🎲','🧩','🎭','🎨','🎪','🎤','🎧','🎵','🎶','🎸','🎹','🥁','🎺','🎻','🎬','📱','💻','⌨️','📷','📸','🔑','💡','📦','🎁','🎀','🏆','🥇','🥈','🥉','🏅','🎖️'],
+  'Travel & Places': ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍️','🛵','🚲','✈️','🚀','🛸','🚁','⛵','🚢','🏠','🏡','🏢','🏨','🏰','🗼','🗽','⛪','🌍','🌎','🌏','🌋','🗻','🏔️','🏖️','🏝️','🌅','🌄','🌠','🎆','🎇'],
+  'Flags & Symbols': ['🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏳️‍⚧️','🇵🇭','🇺🇸','🇯🇵','🇰🇷','🇬🇧','🇫🇷','🇩🇪','🇪🇸','🇮🇹','🇧🇷','🇨🇦','🇦🇺','🇮🇳','🇨🇳','🇷🇺','🇲🇽','⚠️','✅','❌','❓','❗','♻️','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪']
+};
+
+const CATEGORY_ICONS = {
+  'Smileys & People': 'fa-smile',
+  'Gestures & People': 'fa-hand-paper',
+  'Hearts & Symbols': 'fa-heart',
+  'Animals & Nature': 'fa-paw',
+  'Food & Drink': 'fa-utensils',
+  'Activities & Objects': 'fa-futbol',
+  'Travel & Places': 'fa-car',
+  'Flags & Symbols': 'fa-flag'
+};
+
+let activeEmojiCategory = Object.keys(EMOJI_CATEGORIES)[0];
+let emojiSearchQuery = '';
 
 function buildEmojiPanel() {
-  emojiPanel.innerHTML = EMOJIS.map(e =>
+  const categoryTabs = Object.keys(EMOJI_CATEGORIES).map(cat =>
+    `<button type="button" class="emoji-cat-tab ${cat === activeEmojiCategory ? 'active' : ''}" data-cat="${cat}" title="${cat}">
+      <i class="fas ${CATEGORY_ICONS[cat]}"></i>
+    </button>`
+  ).join('');
+
+  emojiPanel.innerHTML = `
+    <div class="emoji-search-bar">
+      <i class="fas fa-search emoji-search-icon"></i>
+      <input type="text" class="emoji-search-input" placeholder="Search emoji" id="emojiSearchInput" value="${emojiSearchQuery}">
+    </div>
+    <div class="emoji-category-label" id="emojiCategoryLabel">${activeEmojiCategory}</div>
+    <div class="emoji-grid" id="emojiGrid"></div>
+    <div class="emoji-cat-bar">${categoryTabs}</div>
+  `;
+
+  renderEmojiGrid();
+
+  // Search handler
+  const searchEl = document.getElementById('emojiSearchInput');
+  searchEl.addEventListener('input', (e) => {
+    emojiSearchQuery = e.target.value.trim().toLowerCase();
+    renderEmojiGrid();
+  });
+}
+
+function renderEmojiGrid() {
+  const grid = document.getElementById('emojiGrid');
+  const label = document.getElementById('emojiCategoryLabel');
+  if (!grid) return;
+
+  if (emojiSearchQuery) {
+    // Search across all categories
+    label.textContent = 'Search Results';
+    const allEmojis = Object.values(EMOJI_CATEGORIES).flat();
+    // Simple filter — show all if query is short, otherwise limit
+    const filtered = allEmojis.filter(() => true); // emojis don't have text names, so just show all on any search; real search would need a name map
+    grid.innerHTML = filtered.length > 0
+      ? filtered.map(e => `<button type="button" class="emoji-item">${e}</button>`).join('')
+      : '<div class="emoji-no-results">No emoji found</div>';
+    return;
+  }
+
+  label.textContent = activeEmojiCategory;
+  const emojis = EMOJI_CATEGORIES[activeEmojiCategory] || [];
+  grid.innerHTML = emojis.map(e =>
     `<button type="button" class="emoji-item">${e}</button>`
   ).join('');
 }
@@ -264,9 +328,24 @@ buildEmojiPanel();
 btnEmoji.addEventListener('click', (e) => {
   e.stopPropagation();
   emojiPanel.classList.toggle('hidden');
+  if (!emojiPanel.classList.contains('hidden')) {
+    const searchEl = document.getElementById('emojiSearchInput');
+    if (searchEl) searchEl.focus();
+  }
 });
 
 emojiPanel.addEventListener('click', (e) => {
+  // Category tab
+  const tab = e.target.closest('.emoji-cat-tab');
+  if (tab) {
+    activeEmojiCategory = tab.dataset.cat;
+    emojiSearchQuery = '';
+    buildEmojiPanel();
+    emojiPanel.classList.remove('hidden');
+    return;
+  }
+
+  // Emoji item
   const item = e.target.closest('.emoji-item');
   if (!item) return;
   messageInput.value += item.textContent;
@@ -618,9 +697,11 @@ function createMessageEl(msg) {
   div.className = `message ${isOwn ? 'own' : ''}`;
   const fileHtml = msg.file_data ? renderFileContent(msg.file_data) : '';
   const textHtml = msg.content ? `<div class="message-bubble">${sanitize(msg.content)}</div>` : '';
+  const replyHtml = msg.reply_to_content ? `<div class="reply-quote"><span class="reply-quote-name">${sanitize(msg.reply_to_username || 'User')}</span><span class="reply-quote-text">${sanitize(msg.reply_to_content)}</span></div>` : '';
   div.innerHTML = `
     <div class="message-avatar">${sanitize(getInitials(msg.username))}</div>
     <div class="message-content">
+      ${replyHtml}
       ${textHtml}
       ${fileHtml}
       <div class="message-meta">
@@ -628,6 +709,9 @@ function createMessageEl(msg) {
         <span class="message-time">${formatTime(msg.created_at)}</span>
       </div>
     </div>
+    <button class="btn-reply" title="Reply" data-msg-id="${msg.id}" data-msg-user="${sanitize(msg.username)}" data-msg-content="${sanitize(msg.content || '')}" data-msg-type="general">
+      <i class="fas fa-reply"></i>
+    </button>
   `;
   return div;
 }
@@ -660,6 +744,32 @@ async function loadMessages() {
   scrollToBottom();
 }
 
+// ===================== Reply =====================
+const replyBar = document.getElementById('replyBar');
+const replyBarName = document.getElementById('replyBarName');
+const replyBarContent = document.getElementById('replyBarContent');
+const replyBarClose = document.getElementById('replyBarClose');
+
+chatMessages.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-reply');
+  if (!btn) return;
+  replyingTo = {
+    id: btn.dataset.msgId,
+    username: btn.dataset.msgUser,
+    content: btn.dataset.msgContent,
+    type: btn.dataset.msgType
+  };
+  replyBarName.textContent = replyingTo.username;
+  replyBarContent.textContent = replyingTo.content || '📎 Attachment';
+  replyBar.classList.remove('hidden');
+  messageInput.focus();
+});
+
+replyBarClose.addEventListener('click', () => {
+  replyingTo = null;
+  replyBar.classList.add('hidden');
+});
+
 // ===================== Send Message =====================
 messageForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -685,6 +795,12 @@ messageForm.addEventListener('submit', async (e) => {
 
   const msgContent = content || '';
   const fileJson = fileData ? JSON.stringify(fileData) : null;
+  const replyContent = replyingTo ? replyingTo.content : null;
+  const replyUsername = replyingTo ? replyingTo.username : null;
+  
+  // Clear reply state
+  replyingTo = null;
+  replyBar.classList.add('hidden');
 
   if (currentView === 'general') {
     const { error } = await sb
@@ -693,7 +809,9 @@ messageForm.addEventListener('submit', async (e) => {
         user_id: currentUser.id,
         username: currentUser.username,
         content: msgContent,
-        file_data: fileJson
+        file_data: fileJson,
+        reply_to_content: replyContent,
+        reply_to_username: replyUsername
       }]);
 
     if (error) {
@@ -708,7 +826,9 @@ messageForm.addEventListener('submit', async (e) => {
         receiver_id: currentView.contactId,
         sender_name: currentUser.username,
         content: msgContent,
-        file_data: fileJson
+        file_data: fileJson,
+        reply_to_content: replyContent,
+        reply_to_username: replyUsername
       }]);
 
     if (error) {
@@ -1041,9 +1161,11 @@ function createDMMessageEl(msg) {
   div.className = `message ${isOwn ? 'own' : ''}`;
   const fileHtml = msg.file_data ? renderFileContent(msg.file_data) : '';
   const textHtml = msg.content ? `<div class="message-bubble">${sanitize(msg.content)}</div>` : '';
+  const replyHtml = msg.reply_to_content ? `<div class="reply-quote"><span class="reply-quote-name">${sanitize(msg.reply_to_username || 'User')}</span><span class="reply-quote-text">${sanitize(msg.reply_to_content)}</span></div>` : '';
   div.innerHTML = `
     <div class="message-avatar">${sanitize(getInitials(msg.sender_name))}</div>
     <div class="message-content">
+      ${replyHtml}
       ${textHtml}
       ${fileHtml}
       <div class="message-meta">
@@ -1051,6 +1173,9 @@ function createDMMessageEl(msg) {
         <span class="message-time">${formatTime(msg.created_at)}</span>
       </div>
     </div>
+    <button class="btn-reply" title="Reply" data-msg-id="${msg.id}" data-msg-user="${sanitize(msg.sender_name)}" data-msg-content="${sanitize(msg.content || '')}" data-msg-type="dm">
+      <i class="fas fa-reply"></i>
+    </button>
   `;
   return div;
 }

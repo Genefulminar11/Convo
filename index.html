@@ -129,6 +129,18 @@
 
       <!-- Message Input -->
       <div class="chat-input-area">
+        <div class="reply-bar hidden" id="replyBar">
+          <div class="reply-bar-info">
+            <i class="fas fa-reply reply-bar-icon"></i>
+            <div class="reply-bar-text">
+              <span class="reply-bar-name" id="replyBarName"></span>
+              <span class="reply-bar-content" id="replyBarContent"></span>
+            </div>
+          </div>
+          <button type="button" class="reply-bar-close" id="replyBarClose">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
         <form id="messageForm" autocomplete="off">
           <div class="input-wrapper">
             <div class="emoji-picker-wrapper">
