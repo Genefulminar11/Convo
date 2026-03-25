@@ -1341,6 +1341,11 @@ function updateOnlineUsers(state) {
   userCountNum.textContent = users.length;
   renderContacts();
 
+  // Update general chat description with online count
+  if (currentView === 'general') {
+    chatRoomDesc.textContent = `${users.length} user${users.length !== 1 ? 's' : ''} online`;
+  }
+
   // Update DM header status if in a DM
   if (currentView !== 'general') {
     const dmDot = document.getElementById('dmStatusDot');
@@ -1614,9 +1619,9 @@ function openGeneralChat() {
 
   chatRoomIcon.innerHTML = '<i class="fas fa-hashtag me-1"></i>';
   chatRoomTitle.textContent = 'general';
-  chatRoomDesc.textContent = 'Public chat room – say hello!';
+  chatRoomDesc.textContent = `${onlineUserIds.size} user${onlineUserIds.size !== 1 ? 's' : ''} online`;
   btnBackChat.classList.add('hidden');
-  document.getElementById('onlineCount').classList.remove('hidden');
+  document.getElementById('onlineCount').classList.add('hidden');
   callButtons.classList.add('hidden');
   btnSearchChat.classList.add('hidden');
   headerMenuWrap.classList.add('hidden');

@@ -68,6 +68,15 @@
               <span class="conv-preview">Public chat room</span>
             </div>
           </div>
+          <!-- Channels Section -->
+          <div class="channels-label" id="channelsLabel">
+            <span>Channels</span>
+            <div class="channels-label-actions">
+              <button class="btn-channel-action" id="btnBrowseChannels" title="Browse Channels"><i class="fas fa-compass"></i></button>
+              <button class="btn-channel-action" id="btnCreateChannel" title="Create Channel"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>
+          <div id="channelsList"></div>
           <div class="contacts-label hidden" id="contactsLabel">
             <span>Contacts</span>
           </div>
@@ -125,6 +134,11 @@
             </button>
             <button class="btn-call" id="btnVideoCall" title="Video Call">
               <i class="fas fa-video"></i>
+            </button>
+          </div>
+          <div class="channel-header-actions hidden" id="channelHeaderActions">
+            <button class="btn-header-action" id="btnChannelInfo" title="Channel Info">
+              <i class="fas fa-info-circle"></i>
             </button>
           </div>
           <button class="btn-header-action hidden" id="btnSearchChat" title="Search in conversation">
@@ -462,6 +476,61 @@
     </div>
   </div>
 
+  <!-- Create Channel Modal -->
+  <div class="modal-overlay hidden" id="createChannelModal">
+    <div class="modal-box channel-modal-box">
+      <button class="channel-modal-close" id="btnCloseCreateChannel"><i class="fas fa-times"></i></button>
+      <div class="modal-header-custom">
+        <i class="fas fa-bullhorn modal-icon"></i>
+        <h4>Create Channel</h4>
+        <p>Create a public channel for group conversations</p>
+      </div>
+      <form id="createChannelForm">
+        <input type="text" id="createChannelName" class="modal-input" placeholder="Channel name" maxlength="50" minlength="2" required autofocus>
+        <textarea id="createChannelDesc" class="modal-input modal-textarea" placeholder="Description (optional)" maxlength="200" rows="3"></textarea>
+        <div class="auth-error hidden" id="createChannelError"></div>
+        <button type="submit" class="modal-btn"><i class="fas fa-plus me-2"></i> Create Channel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Browse Channels Modal -->
+  <div class="modal-overlay hidden" id="browseChannelsModal">
+    <div class="modal-box browse-channels-box">
+      <button class="channel-modal-close" id="btnCloseBrowseChannels"><i class="fas fa-times"></i></button>
+      <div class="modal-header-custom">
+        <i class="fas fa-compass modal-icon"></i>
+        <h4>Browse Channels</h4>
+        <p>Discover and join public channels</p>
+      </div>
+      <div class="browse-search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="browseChannelsSearch" class="modal-input" placeholder="Search channels..." autocomplete="off">
+      </div>
+      <div class="browse-channels-list" id="browseChannelsList"></div>
+    </div>
+  </div>
+
+  <!-- Channel Info Modal -->
+  <div class="modal-overlay hidden" id="channelInfoModal">
+    <div class="modal-box channel-info-box">
+      <button class="channel-modal-close" id="btnCloseChannelInfo"><i class="fas fa-times"></i></button>
+      <div class="channel-info-header">
+        <div class="channel-info-icon"><i class="fas fa-bullhorn"></i></div>
+        <h4 id="channelInfoName">Channel</h4>
+        <p id="channelInfoDesc">Description</p>
+      </div>
+      <div class="channel-info-section">
+        <h6 id="channelInfoMemberCount">0 members</h6>
+        <div class="channel-members-list" id="channelInfoMembers"></div>
+      </div>
+      <div class="channel-info-actions">
+        <button class="modal-btn modal-btn-outline" id="btnLeaveChannel"><i class="fas fa-sign-out-alt me-2"></i>Leave Channel</button>
+        <button class="modal-btn btn-danger hidden" id="btnDeleteChannel"><i class="fas fa-trash me-2"></i>Delete Channel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -475,6 +544,15 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Modular JS -->
+  <script src="js/supabase.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/dm.js"></script>
+  <script src="js/contacts.js"></script>
+  <script src="js/call.js"></script>
+  <script src="js/channels.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
