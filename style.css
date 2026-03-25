@@ -1677,6 +1677,16 @@ body, html {
   border-color: #0d6efd;
 }
 
+.modal-input-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modal-input-row .modal-input {
+  flex: 1;
+  min-width: 0;
+}
+
 .modal-btn {
   width: 100%;
   padding: 0.85rem;
@@ -1833,6 +1843,178 @@ body, html {
   color: #64748b;
   font-family: monospace;
   opacity: 0.8;
+}
+
+/* Settings Button */
+.btn-settings {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+
+.btn-settings:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  transform: rotate(45deg);
+}
+
+[data-theme="dark"] .btn-settings {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .btn-settings:hover {
+  color: #4da6ff;
+  background: rgba(77, 166, 255, 0.15);
+}
+
+/* ===================== Profile Modal ===================== */
+.profile-modal-box {
+  background: #fff;
+  border-radius: 1.25rem;
+  width: 92%;
+  max-width: 420px;
+  max-height: 85vh;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalIn 0.35s ease;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .profile-modal-box {
+  background: #1a1a2e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.profile-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: #64748b;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.profile-modal-close:hover {
+  background: #ef4444;
+  color: white;
+}
+
+[data-theme="dark"] .profile-modal-close {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.profile-iframe {
+  width: 100%;
+  height: 480px;
+  border: none;
+  display: block;
+}
+
+/* ===================== Admin Button & Modal ===================== */
+.btn-admin {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+
+.btn-admin:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .btn-admin {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .btn-admin:hover {
+  color: #4da6ff;
+  background: rgba(77, 166, 255, 0.15);
+}
+
+.admin-modal-box {
+  background: #fff;
+  border-radius: 1.25rem;
+  width: 92%;
+  max-width: 520px;
+  max-height: 85vh;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalIn 0.35s ease;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .admin-modal-box {
+  background: #1a1a2e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.admin-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: #64748b;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.admin-modal-close:hover {
+  background: #ef4444;
+  color: white;
+}
+
+[data-theme="dark"] .admin-modal-close {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.admin-iframe {
+  width: 100%;
+  height: 520px;
+  border: none;
+  display: block;
 }
 
 /* ===================== Logout Modal ===================== */

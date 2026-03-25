@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: transparent;
+      color: #1a1a2e;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    body.dark { color: #e0e0e0; }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .admin-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 0.75rem;
+      background: rgba(13, 110, 253, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0d6efd;
+      font-size: 1.1rem;
+    }
+
+    .dark .admin-icon {
+      background: rgba(77, 166, 255, 0.15);
+      color: #4da6ff;
+    }
+
+    .admin-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0d6efd;
+    }
+
+    .dark .admin-title { color: #4da6ff; }
+
+    .admin-subtitle {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    /* Stats */
+    .stats-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: rgba(13, 110, 253, 0.05);
+      border: 1px solid rgba(13, 110, 253, 0.1);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .dark .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-num {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0d6efd;
+    }
+
+    .dark .stat-num { color: #4da6ff; }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Search */
+    .admin-search {
+      display: flex;
+      align-items: center;
+      background: rgba(13, 110, 253, 0.05);
+      border: 1px solid rgba(13, 110, 253, 0.1);
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .dark .admin-search {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .admin-search i { color: #94a3b8; font-size: 0.85rem; }
+
+    .admin-search input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: inherit;
+      outline: none;
+    }
+
+    .admin-search input::placeholder { color: #94a3b8; }
+
+    /* Users List */
+    .users-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(13, 110, 253, 0.03);
+      border: 1px solid rgba(13, 110, 253, 0.08);
+      border-radius: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .user-card:hover {
+      background: rgba(13, 110, 253, 0.08);
+    }
+
+    .dark .user-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .dark .user-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .user-card-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #0d6efd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .dark .user-card-avatar { background: #4da6ff; }
+
+    .user-card-info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .user-card-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-card-meta {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-card-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-admin {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .btn-delete-user {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .btn-delete-user:hover {
+      background: #ef4444;
+      color: white;
+      transform: scale(1.1);
+    }
+
+    /* Confirm Dialog */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .confirm-overlay.hidden { display: none; }
+
+    .confirm-box {
+      background: #1e293b;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .confirm-box h4 {
+      color: #fff;
+      margin-bottom: 0.35rem;
+      font-size: 1.05rem;
+    }
+
+    .confirm-box p {
+      color: #94a3b8;
+      font-size: 0.8rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .confirm-box .confirm-name {
+      color: #ef4444;
+      font-weight: 700;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .confirm-actions button {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      border-radius: 0.6rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-confirm-cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: #94a3b8;
+    }
+
+    .btn-confirm-cancel:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .btn-confirm-delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-confirm-delete:hover {
+      background: #dc2626;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    .empty-state i {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+      opacity: 0.4;
+    }
+
+    .status-msg {
+      text-align: center;
+      font-size: 0.8rem;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .status-msg.success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
+
+    .status-msg.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .status-msg.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="admin-header">
+    <div class="admin-icon"><i class="fas fa-shield-alt"></i></div>
+    <div>
+      <div class="admin-title">Admin Panel</div>
+      <div class="admin-subtitle">Manage users and accounts</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="totalUsers">—</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="totalAdmins">—</div>
+      <div class="stat-label">Admins</div>
+    </div>
+  </div>
+
+  <div class="status-msg hidden" id="statusMsg"></div>
+
+  <div class="admin-search">
+    <i class="fas fa-search"></i>
+    <input type="text" id="adminSearch" placeholder="Search users..." autocomplete="off">
+  </div>
+
+  <div class="users-list" id="usersList"></div>
+
+  <!-- Confirm Delete Dialog -->
+  <div class="confirm-overlay hidden" id="confirmOverlay">
+    <div class="confirm-box">
+      <h4><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Delete User</h4>
+      <p>Are you sure you want to delete <span class="confirm-name" id="confirmName"></span>? This action cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="btn-confirm-cancel" id="btnCancelDelete">Cancel</button>
+        <button class="btn-confirm-delete" id="btnConfirmDelete">
+          <i class="fas fa-trash me-1"></i> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://kvrbkkioqxcomjazfwoh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2cmJra2lvcXhjb21qYXpmd29oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzOTY4NDUsImV4cCI6MjA4OTk3Mjg0NX0.SqgHc09o9CKJQeqyzYWiayp52XPgqRB__DEqiPJTi1s';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let allUsers = [];
+    let deleteTargetId = null;
+    let deleteTargetName = '';
+
+    try {
+      currentUser = JSON.parse(localStorage.getItem('convo_session'));
+    } catch (e) {}
+
+    // Apply theme
+    const theme = localStorage.getItem('theme') || 'light';
+    if (theme === 'dark') document.body.classList.add('dark');
+
+    function getInitials(name) {
+      return (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    const totalUsersEl = document.getElementById('totalUsers');
+    const totalAdminsEl = document.getElementById('totalAdmins');
+    const usersListEl = document.getElementById('usersList');
+    const adminSearchEl = document.getElementById('adminSearch');
+    const statusMsgEl = document.getElementById('statusMsg');
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    const confirmNameEl = document.getElementById('confirmName');
+    const btnCancelDelete = document.getElementById('btnCancelDelete');
+    const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+
+    function showStatus(msg, type) {
+      statusMsgEl.textContent = msg;
+      statusMsgEl.className = `status-msg ${type}`;
+      setTimeout(() => { statusMsgEl.classList.add('hidden'); }, 3000);
+    }
+
+    async function loadUsers() {
+      if (!currentUser || !currentUser.is_admin) {
+        usersListEl.innerHTML = '<div class="empty-state"><i class="fas fa-lock"></i>Access denied</div>';
+        return;
+      }
+
+      const { data, error } = await sb
+        .from('users')
+        .select('id, first_name, last_name, email, username, is_admin, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        usersListEl.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Failed to load users</div>';
+        return;
+      }
+
+      allUsers = data || [];
+      totalUsersEl.textContent = allUsers.length;
+      totalAdminsEl.textContent = allUsers.filter(u => u.is_admin).length;
+      renderUsers(allUsers);
+    }
+
+    function renderUsers(users) {
+      if (!users.length) {
+        usersListEl.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i>No users found</div>';
+        return;
+      }
+
+      usersListEl.innerHTML = users.map(u => {
+        const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username;
+        const isAdmin = u.is_admin;
+        const isSelf = u.id === currentUser.id;
+        const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+        return `
+          <div class="user-card">
+            <div class="user-card-avatar">${escapeHtml(getInitials(fullName))}</div>
+            <div class="user-card-info">
+              <div class="user-card-name">${escapeHtml(fullName)} <span style="opacity:0.5;font-weight:400;">@${escapeHtml(u.username)}</span></div>
+              <div class="user-card-meta">${escapeHtml(u.email || 'No email')} · ${joined}</div>
+            </div>
+            ${isAdmin ? '<span class="user-card-badge badge-admin">Admin</span>' : ''}
+            ${!isSelf ? `<button class="btn-delete-user" title="Delete user" data-id="${escapeHtml(u.id)}" data-name="${escapeHtml(u.username)}"><i class="fas fa-trash"></i></button>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Search filter
+    adminSearchEl.addEventListener('input', () => {
+      const q = adminSearchEl.value.toLowerCase().trim();
+      if (!q) {
+        renderUsers(allUsers);
+        return;
+      }
+      const filtered = allUsers.filter(u =>
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.first_name || '').toLowerCase().includes(q) ||
+        (u.last_name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.id || '').toLowerCase().includes(q)
+      );
+      renderUsers(filtered);
+    });
+
+    // Delete click
+    usersListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-delete-user');
+      if (!btn) return;
+      deleteTargetId = btn.dataset.id;
+      deleteTargetName = btn.dataset.name;
+      confirmNameEl.textContent = deleteTargetName;
+      confirmOverlay.classList.remove('hidden');
+    });
+
+    btnCancelDelete.addEventListener('click', () => {
+      deleteTargetId = null;
+      deleteTargetName = '';
+      confirmOverlay.classList.add('hidden');
+    });
+
+    btnConfirmDelete.addEventListener('click', async () => {
+      if (!deleteTargetId || !currentUser || !currentUser.is_admin) return;
+
+      btnConfirmDelete.disabled = true;
+      btnConfirmDelete.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+      // Delete user's contacts
+      await sb.from('contacts').delete().or(`user_id.eq.${deleteTargetId},contact_id.eq.${deleteTargetId}`);
+
+      // Delete user's private messages
+      await sb.from('private_messages').delete().or(`sender_id.eq.${deleteTargetId},receiver_id.eq.${deleteTargetId}`);
+
+      // Delete user's public messages
+      await sb.from('messages').delete().eq('user_id', deleteTargetId);
+
+      // Delete user's avatar
+      await sb.storage.from('avatars').remove([`${deleteTargetId}/avatar`]);
+
+      // Delete the user
+      const { error } = await sb.from('users').delete().eq('id', deleteTargetId);
+
+      btnConfirmDelete.disabled = false;
+      btnConfirmDelete.innerHTML = '<i class="fas fa-trash me-1"></i> Delete';
+      confirmOverlay.classList.add('hidden');
+
+      if (error) {
+        showStatus('Failed to delete user: ' + error.message, 'error');
+      } else {
+        showStatus(`User @${deleteTargetName} has been deleted.`, 'success');
+        loadUsers();
+      }
+
+      deleteTargetId = null;
+      deleteTargetName = '';
+    });
+
+    loadUsers();
+  </script>
+</body>
+</html>

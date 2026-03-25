@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Settings</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: transparent;
+      color: #1a1a2e;
+      padding: 2rem 1.5rem;
+      overflow-y: auto;
+    }
+
+    body.dark {
+      color: #e0e0e0;
+    }
+
+    .profile-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .profile-avatar-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+
+    .profile-avatar-lg {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #0d6efd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2.4rem;
+      font-weight: 700;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 3px solid rgba(13, 110, 253, 0.3);
+    }
+
+    .profile-avatar-lg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .dark .profile-avatar-lg {
+      background: #4da6ff;
+      border-color: rgba(77, 166, 255, 0.3);
+    }
+
+    .btn-upload-avatar {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      background: #0d6efd;
+      color: white;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .btn-upload-avatar:hover {
+      background: #0b5ed7;
+      transform: scale(1.1);
+    }
+
+    .dark .btn-upload-avatar {
+      background: #4da6ff;
+      border-color: #1a1a2e;
+    }
+
+    .profile-username {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #0d6efd;
+    }
+
+    .dark .profile-username {
+      color: #4da6ff;
+    }
+
+    .profile-uid {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      font-family: monospace;
+    }
+
+    /* Info Cards */
+    .profile-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+      padding-left: 0.25rem;
+    }
+
+    .profile-card {
+      background: rgba(13, 110, 253, 0.05);
+      border: 1px solid rgba(13, 110, 253, 0.1);
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    .dark .profile-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .profile-row {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      gap: 0.75rem;
+    }
+
+    .profile-row + .profile-row {
+      border-top: 1px solid rgba(13, 110, 253, 0.08);
+    }
+
+    .dark .profile-row + .profile-row {
+      border-top-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .profile-row-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 0.5rem;
+      background: rgba(13, 110, 253, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0d6efd;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .dark .profile-row-icon {
+      background: rgba(77, 166, 255, 0.15);
+      color: #4da6ff;
+    }
+
+    .profile-row-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .profile-row-label {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .profile-row-value {
+      font-size: 0.9rem;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Upload Status */
+    .upload-status {
+      text-align: center;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      min-height: 1.2rem;
+    }
+
+    .upload-status.success { color: #22c55e; }
+    .upload-status.error { color: #ef4444; }
+    .upload-status.loading { color: #94a3b8; }
+
+    /* Logout Section */
+    .btn-profile-logout {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 0.75rem;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-profile-logout:hover {
+      background: #ef4444;
+      color: white;
+    }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <div class="profile-header">
+    <div class="profile-avatar-wrapper">
+      <div class="profile-avatar-lg" id="profileAvatarLg">
+        <span id="profileInitials">?</span>
+      </div>
+      <button class="btn-upload-avatar" id="btnUploadAvatar" title="Change photo">
+        <i class="fas fa-camera"></i>
+      </button>
+      <input type="file" id="avatarFileInput" accept="image/png, image/jpeg, image/webp">
+    </div>
+    <div class="upload-status" id="uploadStatus"></div>
+    <div class="profile-username" id="profileUsername">Guest</div>
+    <div class="profile-uid" id="profileUid"></div>
+  </div>
+
+  <div class="profile-section">
+    <div class="profile-section-title">Personal Info</div>
+    <div class="profile-card">
+      <div class="profile-row">
+        <div class="profile-row-icon"><i class="fas fa-id-card"></i></div>
+        <div class="profile-row-info">
+          <div class="profile-row-label">Full Name</div>
+          <div class="profile-row-value" id="infoFullName">—</div>
+        </div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-row-icon"><i class="fas fa-envelope"></i></div>
+        <div class="profile-row-info">
+          <div class="profile-row-label">Email</div>
+          <div class="profile-row-value" id="infoEmail">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-section">
+    <div class="profile-section-title">Account Info</div>
+    <div class="profile-card">
+      <div class="profile-row">
+        <div class="profile-row-icon"><i class="fas fa-user"></i></div>
+        <div class="profile-row-info">
+          <div class="profile-row-label">Username</div>
+          <div class="profile-row-value" id="infoUsername">—</div>
+        </div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-row-icon"><i class="fas fa-fingerprint"></i></div>
+        <div class="profile-row-info">
+          <div class="profile-row-label">User ID</div>
+          <div class="profile-row-value" id="infoUserId">—</div>
+        </div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-row-icon"><i class="fas fa-calendar"></i></div>
+        <div class="profile-row-info">
+          <div class="profile-row-label">Joined</div>
+          <div class="profile-row-value" id="infoJoined">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-section">
+    <div class="profile-section-title">Actions</div>
+    <button class="btn-profile-logout" id="btnProfileLogout">
+      <i class="fas fa-sign-out-alt"></i> Log Out
+    </button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://kvrbkkioqxcomjazfwoh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2cmJra2lvcXhjb21qYXpmd29oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzOTY4NDUsImV4cCI6MjA4OTk3Mjg0NX0.SqgHc09o9CKJQeqyzYWiayp52XPgqRB__DEqiPJTi1s';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const profileAvatarLg = document.getElementById('profileAvatarLg');
+    const profileInitials = document.getElementById('profileInitials');
+    const profileUsername = document.getElementById('profileUsername');
+    const profileUid = document.getElementById('profileUid');
+    const infoUsername = document.getElementById('infoUsername');
+    const infoUserId = document.getElementById('infoUserId');
+    const infoJoined = document.getElementById('infoJoined');
+    const infoFullName = document.getElementById('infoFullName');
+    const infoEmail = document.getElementById('infoEmail');
+    const btnUploadAvatar = document.getElementById('btnUploadAvatar');
+    const avatarFileInput = document.getElementById('avatarFileInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const btnProfileLogout = document.getElementById('btnProfileLogout');
+
+    function getInitials(name) {
+      return (name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    // Get user from parent's localStorage
+    let currentUser = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem('convo_session'));
+    } catch (e) {}
+
+    // Apply theme from parent
+    function applyTheme() {
+      const theme = localStorage.getItem('theme') || 'light';
+      if (theme === 'dark') {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+    }
+    applyTheme();
+
+    async function loadProfile() {
+      if (!currentUser) return;
+
+      profileInitials.textContent = getInitials(currentUser.username);
+      profileUsername.textContent = currentUser.username;
+      profileUid.textContent = 'ID: ' + currentUser.id;
+      infoUsername.textContent = currentUser.username;
+      infoUserId.textContent = currentUser.id;
+
+      // Fetch user details
+      const { data } = await sb
+        .from('users')
+        .select('first_name, last_name, email, created_at')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (data) {
+        if (data.first_name || data.last_name) {
+          const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+          infoFullName.textContent = fullName;
+          profileInitials.textContent = getInitials(fullName);
+        }
+        if (data.email) {
+          infoEmail.textContent = data.email;
+        }
+        if (data.created_at) {
+          infoJoined.textContent = new Date(data.created_at).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+          });
+        }
+      }
+
+      // Load existing avatar
+      loadAvatar();
+    }
+
+    async function loadAvatar() {
+      if (!currentUser) return;
+      const { data } = sb.storage.from('avatars').getPublicUrl(`${currentUser.id}/avatar`);
+      if (data && data.publicUrl) {
+        // Test if image exists by trying to load it
+        const img = new Image();
+        img.onload = () => {
+          profileAvatarLg.innerHTML = `<img src="${data.publicUrl}?t=${Date.now()}" alt="avatar">`;
+          // Notify parent to update sidebar avatar
+          window.parent.postMessage({
+            type: 'avatar-updated',
+            url: data.publicUrl + '?t=' + Date.now()
+          }, '*');
+        };
+        img.onerror = () => { /* no avatar yet, keep initials */ };
+        img.src = data.publicUrl + '?t=' + Date.now();
+      }
+    }
+
+    btnUploadAvatar.addEventListener('click', () => avatarFileInput.click());
+
+    avatarFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !currentUser) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        uploadStatus.className = 'upload-status error';
+        uploadStatus.textContent = 'Max file size is 2MB';
+        return;
+      }
+
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        uploadStatus.className = 'upload-status error';
+        uploadStatus.textContent = 'Only JPG, PNG, or WebP allowed';
+        return;
+      }
+
+      uploadStatus.className = 'upload-status loading';
+      uploadStatus.textContent = 'Uploading...';
+
+      const filePath = `${currentUser.id}/avatar`;
+
+      const { error } = await sb.storage
+        .from('avatars')
+        .upload(filePath, file, { cacheControl: '60', upsert: true });
+
+      if (error) {
+        uploadStatus.className = 'upload-status error';
+        uploadStatus.textContent = 'Upload failed: ' + error.message;
+        return;
+      }
+
+      uploadStatus.className = 'upload-status success';
+      uploadStatus.textContent = 'Photo updated!';
+      setTimeout(() => { uploadStatus.textContent = ''; }, 3000);
+
+      // Refresh avatar display
+      loadAvatar();
+    });
+
+    btnProfileLogout.addEventListener('click', () => {
+      // Tell parent to show logout modal
+      window.parent.postMessage({ type: 'logout' }, '*');
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

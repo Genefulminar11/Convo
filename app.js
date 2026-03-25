@@ -15,8 +15,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
   -- Users table
   CREATE TABLE users (
     id text PRIMARY KEY,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text UNIQUE NOT NULL,
     username text UNIQUE NOT NULL,
     password_hash text NOT NULL,
+    is_admin boolean DEFAULT false,
     created_at timestamptz DEFAULT now()
   );
 
@@ -480,6 +484,24 @@ function setUserUI(user) {
   userNameDisplay.textContent = user.username;
   userIdSmall.textContent = 'ID: ' + user.id;
   document.getElementById('userAvatar').innerHTML = `<span>${getInitials(user.username)}</span>`;
+
+  // Try to load avatar from storage
+  const { data } = sb.storage.from('avatars').getPublicUrl(`${user.id}/avatar`);
+  if (data && data.publicUrl) {
+    const img = new Image();
+    img.onload = () => {
+      document.getElementById('userAvatar').innerHTML = `<img src="${data.publicUrl}?t=${Date.now()}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    };
+    img.src = data.publicUrl + '?t=' + Date.now();
+  }
+
+  // Show admin button if user is admin
+  const btnAdmin = document.getElementById('btnAdmin');
+  if (user.is_admin) {
+    btnAdmin.classList.remove('hidden');
+  } else {
+    btnAdmin.classList.add('hidden');
+  }
 }
 
 // ===================== Register =====================
@@ -487,9 +509,20 @@ registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideError(registerError);
 
+  const firstName = document.getElementById('registerFirstName').value.trim();
+  const lastName = document.getElementById('registerLastName').value.trim();
+  const email = document.getElementById('registerEmail').value.trim();
   const username = document.getElementById('registerUsername').value.trim();
   const password = document.getElementById('registerPassword').value;
 
+  if (!firstName || !lastName) {
+    showError(registerError, 'First and last name are required.');
+    return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showError(registerError, 'Please enter a valid email address.');
+    return;
+  }
   if (username.length < 2) {
     showError(registerError, 'Username must be at least 2 characters.');
     return;
@@ -504,15 +537,19 @@ registerForm.addEventListener('submit', async (e) => {
   registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Creating...';
 
   try {
-    // Check if username is taken
+    // Check if username or email is taken
     const { data: existing } = await sb
       .from('users')
-      .select('id')
-      .eq('username', username)
+      .select('id, username, email')
+      .or(`username.eq.${username},email.eq.${email}`)
       .limit(1);
 
     if (existing && existing.length > 0) {
-      showError(registerError, 'Username is already taken. Choose another.');
+      if (existing[0].username === username) {
+        showError(registerError, 'Username is already taken. Choose another.');
+      } else {
+        showError(registerError, 'An account with this email already exists.');
+      }
       registerBtn.disabled = false;
       registerBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i> Register';
       return;
@@ -523,7 +560,14 @@ registerForm.addEventListener('submit', async (e) => {
 
     const { error } = await sb
       .from('users')
-      .insert([{ id: userId, username: username, password_hash: passHash }]);
+      .insert([{
+        id: userId,
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        username: username,
+        password_hash: passHash
+      }]);
 
     if (error) {
       showError(registerError, 'Registration failed: ' + error.message);
@@ -586,15 +630,15 @@ loginForm.addEventListener('submit', async (e) => {
   try {
     const passHash = await hashPassword(password);
 
-    // Try matching by ID first, then by username
+    // Try matching by ID, username, or email
     let { data: users } = await sb
       .from('users')
-      .select('id, username, password_hash')
-      .or(`id.eq.${loginId},username.eq.${loginId}`)
+      .select('id, username, password_hash, is_admin')
+      .or(`id.eq.${loginId},username.eq.${loginId},email.eq.${loginId}`)
       .limit(1);
 
     if (!users || users.length === 0) {
-      showError(loginError, 'No account found with that ID or username.');
+      showError(loginError, 'No account found. Check your email, username, or ID.');
       loginBtn.disabled = false;
       loginBtn.innerHTML = '<i class="fas fa-arrow-right me-2"></i> Log In';
       return;
@@ -609,7 +653,7 @@ loginForm.addEventListener('submit', async (e) => {
     }
 
     // Success
-    currentUser = { id: user.id, username: user.username };
+    currentUser = { id: user.id, username: user.username, is_admin: !!user.is_admin };
     localStorage.setItem('convo_session', JSON.stringify(currentUser));
     hideAuthModal();
     setUserUI(currentUser);
@@ -660,6 +704,7 @@ logoutConfirm.addEventListener('click', () => {
   userNameDisplay.textContent = 'Guest';
   userIdSmall.textContent = '';
   document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
+  document.getElementById('btnAdmin').classList.add('hidden');
 
   // Reset chat header
   chatRoomIcon.innerHTML = '<i class="fas fa-hashtag me-1"></i>';
@@ -680,6 +725,62 @@ logoutConfirm.addEventListener('click', () => {
   if (dmChannel) sb.removeChannel(dmChannel);
   if (callSignalChannel) sb.removeChannel(callSignalChannel);
   endCall(false);
+});
+
+// ===================== Profile / Settings Modal =====================
+const btnSettings = document.getElementById('btnSettings');
+const profileModal = document.getElementById('profileModal');
+const btnCloseProfile = document.getElementById('btnCloseProfile');
+const profileIframe = document.getElementById('profileIframe');
+
+btnSettings.addEventListener('click', () => {
+  // Reload iframe to get fresh data
+  profileIframe.src = 'profile.html';
+  profileModal.classList.remove('hidden');
+});
+
+btnCloseProfile.addEventListener('click', () => {
+  profileModal.classList.add('hidden');
+});
+
+profileModal.addEventListener('click', (e) => {
+  if (e.target === profileModal) profileModal.classList.add('hidden');
+});
+
+// Listen for messages from profile iframe
+window.addEventListener('message', (e) => {
+  if (!e.data || !e.data.type) return;
+
+  if (e.data.type === 'avatar-updated' && e.data.url) {
+    // Update sidebar avatar with the uploaded image
+    const avatarEl = document.getElementById('userAvatar');
+    avatarEl.innerHTML = `<img src="${e.data.url}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  }
+
+  if (e.data.type === 'logout') {
+    profileModal.classList.add('hidden');
+    showLogoutModal();
+  }
+});
+
+// ===================== Admin Panel Modal =====================
+const btnAdmin = document.getElementById('btnAdmin');
+const adminModal = document.getElementById('adminModal');
+const btnCloseAdmin = document.getElementById('btnCloseAdmin');
+const adminIframe = document.getElementById('adminIframe');
+
+btnAdmin.addEventListener('click', () => {
+  if (!currentUser || !currentUser.is_admin) return;
+  adminIframe.src = 'admin.html';
+  adminModal.classList.remove('hidden');
+});
+
+btnCloseAdmin.addEventListener('click', () => {
+  adminModal.classList.add('hidden');
+});
+
+adminModal.addEventListener('click', (e) => {
+  if (e.target === adminModal) adminModal.classList.add('hidden');
 });
 
 // ===================== Message Rendering =====================

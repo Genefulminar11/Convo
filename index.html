@@ -45,6 +45,9 @@
             <span class="user-name" id="userName">Guest</span>
             <span class="user-id-small" id="userIdSmall"></span>
           </div>
+          <button class="btn-settings" id="btnSettings" title="Settings">
+            <i class="fas fa-cog"></i>
+          </button>
         </div>
 
         <!-- Search Users -->
@@ -73,6 +76,10 @@
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
+          <!-- Admin Panel Button (admin only) -->
+          <button class="btn-admin hidden" id="btnAdmin" title="Admin Panel">
+            <i class="fas fa-shield-alt"></i>
+          </button>
           <!-- Theme Toggle -->
           <label class="theme-switch" title="Toggle dark mode">
             <input type="checkbox" id="themeToggle">
@@ -215,9 +222,38 @@
         <div class="modal-header-custom">
           <i class="fas fa-user-plus modal-icon"></i>
           <h4>Create Account</h4>
-          <p>Pick a username and password</p>
+          <p>Fill in your details to get started</p>
         </div>
         <form id="registerForm">
+          <div class="modal-input-row">
+            <input
+              type="text"
+              id="registerFirstName"
+              class="modal-input"
+              placeholder="First name"
+              maxlength="30"
+              minlength="1"
+              required
+              autofocus
+            >
+            <input
+              type="text"
+              id="registerLastName"
+              class="modal-input"
+              placeholder="Last name"
+              maxlength="30"
+              minlength="1"
+              required
+            >
+          </div>
+          <input
+            type="email"
+            id="registerEmail"
+            class="modal-input"
+            placeholder="Email address"
+            maxlength="100"
+            required
+          >
           <input
             type="text"
             id="registerUsername"
@@ -226,7 +262,6 @@
             maxlength="30"
             minlength="2"
             required
-            autofocus
           >
           <input
             type="password"
@@ -253,14 +288,14 @@
         <div class="modal-header-custom">
           <i class="fas fa-sign-in-alt modal-icon"></i>
           <h4>Welcome Back</h4>
-          <p>Log in with your unique ID or username</p>
+          <p>Log in with your email, username, or unique ID</p>
         </div>
         <form id="loginForm">
           <input
             type="text"
             id="loginId"
             class="modal-input"
-            placeholder="Your unique ID or username"
+            placeholder="Email, username, or unique ID"
             required
             autofocus
           >
@@ -363,6 +398,26 @@
   </div>
 
   <!-- Supabase JS CDN -->
+  <!-- Profile Modal -->
+  <div class="modal-overlay hidden" id="profileModal">
+    <div class="profile-modal-box">
+      <button class="profile-modal-close" id="btnCloseProfile">
+        <i class="fas fa-times"></i>
+      </button>
+      <iframe id="profileIframe" src="profile.html" class="profile-iframe"></iframe>
+    </div>
+  </div>
+
+  <!-- Admin Panel Modal -->
+  <div class="modal-overlay hidden" id="adminModal">
+    <div class="admin-modal-box">
+      <button class="admin-modal-close" id="btnCloseAdmin">
+        <i class="fas fa-times"></i>
+      </button>
+      <iframe id="adminIframe" src="admin.html" class="profile-iframe admin-iframe"></iframe>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
