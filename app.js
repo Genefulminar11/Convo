@@ -1340,6 +1340,10 @@ let callStartTime = null;
 let incomingCallData = null;
 let isMuted = false;
 let isVideoOff = false;
+let currentCallWithVideo = false;
+let currentCallPeerId = null;
+let currentCallPeerName = null;
+const _sendChannels = {};
 
 const ICE_SERVERS = {
   iceServers: [
@@ -1362,17 +1366,38 @@ function subscribeToCallSignals() {
     .on('broadcast', { event: 'ice-candidate' }, ({ payload }) => {
       handleICECandidate(payload);
     })
-    .on('broadcast', { event: 'call-end' }, () => {
+    .on('broadcast', { event: 'call-end' }, async ({ payload }) => {
+      const wasUnanswered = !callStartTime && (peerConnection || incomingCallData);
+      const callType = (payload && payload.withVideo) || currentCallWithVideo ? 'video' : 'voice';
+      const callerId = payload && payload.callerId;
+      const callerName = payload && payload.callerName;
       endCall(false);
+      // If call was never connected, insert missed call message
+      if (wasUnanswered && currentUser && sb) {
+        // The caller hung up — insert missed call visible to both
+        if (callerId) {
+          await sb.from('private_messages').insert([{
+            sender_id: callerId,
+            receiver_id: currentUser.id,
+            sender_name: callerName || 'Unknown',
+            content: `__missed_call__:${callType}`,
+            file_data: null,
+            reply_to_content: null,
+            reply_to_username: null
+          }]);
+        }
+      }
     })
     .on('broadcast', { event: 'call-declined' }, async ({ payload }) => {
+      const callType = payload.withVideo ? 'video' : 'voice';
+      const peerId = currentCallPeerId;
+      const peerName = currentCallPeerName;
       endCall(false);
       // Insert missed call message from caller's perspective
-      if (currentView !== 'general' && currentUser) {
-        const callType = payload.withVideo ? 'video' : 'voice';
+      if (peerId && currentUser && sb) {
         await sb.from('private_messages').insert([{
           sender_id: currentUser.id,
-          receiver_id: currentView.contactId,
+          receiver_id: peerId,
           sender_name: currentUser.username,
           content: `__missed_call__:${callType}`,
           file_data: null,
@@ -1386,6 +1411,9 @@ function subscribeToCallSignals() {
 
 function handleIncomingCall(data) {
   incomingCallData = data;
+  currentCallWithVideo = data.withVideo;
+  currentCallPeerId = data.callerId;
+  currentCallPeerName = data.callerName;
   incomingCallAvatar.textContent = getInitials(data.callerName);
   incomingCallName.textContent = data.callerName;
   incomingCallType.textContent = data.withVideo ? 'Incoming video call...' : 'Incoming voice call...';
@@ -1469,6 +1497,10 @@ async function startCall(withVideo) {
   const peerId = currentView.contactId;
   const peerName = currentView.contactName;
 
+  currentCallWithVideo = withVideo;
+  currentCallPeerId = peerId;
+  currentCallPeerName = peerName;
+
   showCallOverlay(peerName, withVideo);
   callTimer.textContent = 'Calling...';
 
@@ -1545,14 +1577,27 @@ async function handleICECandidate(data) {
 
 function sendCallSignal(targetUserId, event, payload) {
   if (!sb) return;
-  sb.channel(`call-signals-${targetUserId}`).subscribe((status) => {
+  const channelName = `call-signals-${targetUserId}`;
+
+  // Reuse already-subscribed send channel
+  if (_sendChannels[targetUserId]) {
+    _sendChannels[targetUserId].send({ type: 'broadcast', event, payload });
+    return;
+  }
+
+  const ch = sb.channel(channelName);
+  ch.subscribe((status) => {
     if (status === 'SUBSCRIBED') {
-      sb.channel(`call-signals-${targetUserId}`).send({
-        type: 'broadcast',
-        event,
-        payload
-      });
+      _sendChannels[targetUserId] = ch;
+      ch.send({ type: 'broadcast', event, payload });
     }
+  });
+}
+
+function cleanupSendChannels() {
+  Object.keys(_sendChannels).forEach(id => {
+    try { _sendChannels[id].unsubscribe(); } catch (e) { /* ignore */ }
+    delete _sendChannels[id];
   });
 }
 
@@ -1590,7 +1635,11 @@ function startCallTimer() {
 
 function endCall(notify) {
   if (notify && currentView !== 'general') {
-    sendCallSignal(currentView.contactId, 'call-end', {});
+    sendCallSignal(currentView.contactId, 'call-end', {
+      withVideo: currentCallWithVideo,
+      callerId: currentUser ? currentUser.id : null,
+      callerName: currentUser ? currentUser.username : null
+    });
   }
 
   if (peerConnection) {
@@ -1609,10 +1658,14 @@ function endCall(notify) {
   }
 
   callStartTime = null;
+  currentCallPeerId = null;
+  currentCallPeerName = null;
+  currentCallWithVideo = false;
   remoteVideo.srcObject = null;
   localVideo.srcObject = null;
   callOverlay.classList.add('hidden');
   incomingCallModal.classList.add('hidden');
+  cleanupSendChannels();
 }
 
 btnVoiceCall.addEventListener('click', () => startCall(false));
