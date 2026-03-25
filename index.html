@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convo – Messaging App</title>
+  <meta name="description" content="Convo – A real-time messaging app by Gene Ryan.">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Apply saved theme immediately -->
+  <script>
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+
+        <!-- App Logo / Brand -->
+        <div class="brand">
+          <i class="fas fa-comments"></i>
+          <span class="brand-name">Convo</span>
+        </div>
+
+        <!-- User Profile -->
+        <div class="user-profile" id="userProfile">
+          <div class="user-avatar" id="userAvatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="user-info-col">
+            <span class="user-name" id="userName">Guest</span>
+            <span class="user-id-small" id="userIdSmall"></span>
+          </div>
+        </div>
+
+        <!-- Search Users -->
+        <div class="search-section">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Search users..." class="search-input" autocomplete="off">
+          </div>
+          <div class="search-results hidden" id="searchResults"></div>
+        </div>
+
+        <!-- Conversations & Contacts -->
+        <div class="conversations-section">
+          <div class="conv-item active" id="convGeneral">
+            <div class="conv-icon general-icon"><i class="fas fa-hashtag"></i></div>
+            <div class="conv-info">
+              <span class="conv-name">General</span>
+              <span class="conv-preview">Public chat room</span>
+            </div>
+          </div>
+          <div class="contacts-label hidden" id="contactsLabel">
+            <span>Contacts</span>
+          </div>
+          <div id="contactsList"></div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+          <!-- Theme Toggle -->
+          <label class="theme-switch" title="Toggle dark mode">
+            <input type="checkbox" id="themeToggle">
+            <span class="theme-slider">
+              <i class="fas fa-sun theme-icon-sun"></i>
+              <i class="fas fa-moon theme-icon-moon"></i>
+            </span>
+          </label>
+          <button class="btn-logout" id="btnLogout" title="Clear session">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile toggle -->
+      <button class="sidebar-toggle d-lg-none" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+    </aside>
+
+    <!-- MAIN CHAT AREA -->
+    <main class="chat-main">
+
+      <!-- Chat Header -->
+      <header class="chat-header">
+        <button class="sidebar-open-btn d-lg-none" id="sidebarOpenBtn">
+          <i class="fas fa-bars"></i>
+        </button>
+        <button class="btn-back-chat hidden" id="btnBackChat" title="Back to General">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="chat-header-info">
+          <h5 class="chat-room-name" id="chatRoomName">
+            <span id="chatRoomIcon"><i class="fas fa-hashtag me-1"></i></span> <span id="chatRoomTitle">general</span>
+          </h5>
+          <span class="chat-room-desc" id="chatRoomDesc">Public chat room – say hello!</span>
+        </div>
+        <div class="chat-header-actions">
+          <span class="online-count" id="onlineCount">
+            <i class="fas fa-users me-1"></i> <span id="userCountNum">0</span>
+          </span>
+        </div>
+      </header>
+
+      <!-- Messages Area -->
+      <div class="chat-messages" id="chatMessages">
+        <!-- Welcome message -->
+        <div class="system-message" id="welcomeMsg">
+          <i class="fas fa-hand-wave"></i>
+          Welcome to <strong>Convo</strong>! Messages are loaded in real-time.
+        </div>
+        <!-- Messages populated by JS -->
+      </div>
+
+      <!-- Message Input -->
+      <div class="chat-input-area">
+        <form id="messageForm" autocomplete="off">
+          <div class="input-wrapper">
+            <input
+              type="text"
+              id="messageInput"
+              class="message-input"
+              placeholder="Type a message..."
+              maxlength="1000"
+              required
+            >
+            <button type="submit" class="btn-send" id="btnSend" title="Send message">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+
+      <!-- Greeting View (shown first) -->
+      <div id="authGreeting">
+        <div class="modal-header-custom">
+          <i class="fas fa-comments modal-icon"></i>
+          <h4>Welcome to Convo</h4>
+          <p>Real-time messaging, right from your browser</p>
+        </div>
+        <div class="greeting-actions">
+          <button type="button" class="modal-btn" id="goToRegister">
+            <i class="fas fa-user-plus me-2"></i> Register
+          </button>
+          <button type="button" class="modal-btn modal-btn-outline" id="goToLogin">
+            <i class="fas fa-sign-in-alt me-2"></i> Log In
+          </button>
+        </div>
+      </div>
+
+      <!-- Register View -->
+      <div id="authRegister" class="hidden">
+        <div class="modal-header-custom">
+          <i class="fas fa-user-plus modal-icon"></i>
+          <h4>Create Account</h4>
+          <p>Pick a username and password</p>
+        </div>
+        <form id="registerForm">
+          <input
+            type="text"
+            id="registerUsername"
+            class="modal-input"
+            placeholder="Choose a username"
+            maxlength="30"
+            minlength="2"
+            required
+            autofocus
+          >
+          <input
+            type="password"
+            id="registerPassword"
+            class="modal-input"
+            placeholder="Create a password"
+            maxlength="100"
+            minlength="4"
+            required
+          >
+          <div class="auth-error hidden" id="registerError"></div>
+          <button type="submit" class="modal-btn" id="registerBtn">
+            <i class="fas fa-user-plus me-2"></i> Register
+          </button>
+        </form>
+        <div class="auth-switch">
+          Already have an account? <a href="#" id="showLogin">Log in</a>
+          <br><a href="#" id="backFromRegister" class="auth-back"><i class="fas fa-arrow-left me-1"></i> Back</a>
+        </div>
+      </div>
+
+      <!-- Login View -->
+      <div id="authLogin" class="hidden">
+        <div class="modal-header-custom">
+          <i class="fas fa-sign-in-alt modal-icon"></i>
+          <h4>Welcome Back</h4>
+          <p>Log in with your unique ID or username</p>
+        </div>
+        <form id="loginForm">
+          <input
+            type="text"
+            id="loginId"
+            class="modal-input"
+            placeholder="Your unique ID or username"
+            required
+            autofocus
+          >
+          <input
+            type="password"
+            id="loginPassword"
+            class="modal-input"
+            placeholder="Your password"
+            required
+          >
+          <div class="auth-error hidden" id="loginError"></div>
+          <button type="submit" class="modal-btn" id="loginBtn">
+            <i class="fas fa-arrow-right me-2"></i> Log In
+          </button>
+        </form>
+        <div class="auth-switch">
+          Don't have an account? <a href="#" id="showRegister">Register</a>
+          <br><a href="#" id="backFromLogin" class="auth-back"><i class="fas fa-arrow-left me-1"></i> Back</a>
+        </div>
+      </div>
+
+      <!-- Welcome / ID Display (shown after register) -->
+      <div id="authWelcome" class="hidden">
+        <div class="modal-header-custom">
+          <i class="fas fa-check-circle modal-icon" style="color: #22c55e;"></i>
+          <h4>You're Registered!</h4>
+          <p>Save your unique ID — you'll need it to log back in</p>
+        </div>
+        <div class="unique-id-display">
+          <span class="unique-id-label">Your Unique ID</span>
+          <div class="unique-id-box">
+            <code id="displayUniqueId"></code>
+            <button type="button" class="btn-copy" id="btnCopyId" title="Copy ID">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+        <button type="button" class="modal-btn" id="btnEnterChat">
+          <i class="fas fa-comments me-2"></i> Enter Chat
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div class="modal-overlay hidden" id="logoutModal">
+    <div class="logout-modal-box">
+      <h4 class="logout-title">Are you sure you want to log out?</h4>
+      <div class="logout-actions">
+        <button type="button" class="logout-btn-cancel" id="logoutCancel">
+          CANCEL
+        </button>
+        <button type="button" class="logout-btn-confirm" id="logoutConfirm">
+          LOG OUT
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>

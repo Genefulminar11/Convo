@@ -1,0 +1,969 @@
+// ===================== Supabase Configuration =====================
+// TODO: Replace these with your own Supabase project credentials
+// 1. Go to https://supabase.com → Create a free project
+// 2. Go to Settings → API → Copy your Project URL and anon/public key
+// 3. Paste them below
+const SUPABASE_URL = 'https://kvrbkkioqxcomjazfwoh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2cmJra2lvcXhjb21qYXpmd29oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzOTY4NDUsImV4cCI6MjA4OTk3Mjg0NX0.SqgHc09o9CKJQeqyzYWiayp52XPgqRB__DEqiPJTi1s';
+
+/*
+  SUPABASE SETUP INSTRUCTIONS:
+  =============================
+  1. Create a new Supabase project at https://supabase.com
+  2. Go to SQL Editor and run these queries:
+
+  -- Users table
+  CREATE TABLE users (
+    id text PRIMARY KEY,
+    username text UNIQUE NOT NULL,
+    password_hash text NOT NULL,
+    created_at timestamptz DEFAULT now()
+  );
+
+  ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Anyone can read users"
+    ON users FOR SELECT USING (true);
+
+  CREATE POLICY "Anyone can register"
+    ON users FOR INSERT WITH CHECK (true);
+
+  -- Messages table (public chat)
+  CREATE TABLE messages (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id text REFERENCES users(id),
+    username text NOT NULL,
+    content text NOT NULL,
+    created_at timestamptz DEFAULT now()
+  );
+
+  ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Anyone can read messages"
+    ON messages FOR SELECT USING (true);
+
+  CREATE POLICY "Registered users can send messages"
+    ON messages FOR INSERT WITH CHECK (true);
+
+  -- Contacts table
+  CREATE TABLE contacts (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id text REFERENCES users(id) NOT NULL,
+    contact_id text REFERENCES users(id) NOT NULL,
+    contact_name text NOT NULL,
+    is_favorite boolean DEFAULT false,
+    created_at timestamptz DEFAULT now(),
+    UNIQUE(user_id, contact_id)
+  );
+
+  ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Anyone can read contacts"
+    ON contacts FOR SELECT USING (true);
+  CREATE POLICY "Anyone can insert contacts"
+    ON contacts FOR INSERT WITH CHECK (true);
+  CREATE POLICY "Anyone can update contacts"
+    ON contacts FOR UPDATE USING (true);
+  CREATE POLICY "Anyone can delete contacts"
+    ON contacts FOR DELETE USING (true);
+
+  -- Private Messages table (DMs)
+  CREATE TABLE private_messages (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    sender_id text REFERENCES users(id) NOT NULL,
+    receiver_id text REFERENCES users(id) NOT NULL,
+    sender_name text NOT NULL,
+    content text NOT NULL,
+    created_at timestamptz DEFAULT now()
+  );
+
+  ALTER TABLE private_messages ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Anyone can read DMs"
+    ON private_messages FOR SELECT USING (true);
+  CREATE POLICY "Anyone can send DMs"
+    ON private_messages FOR INSERT WITH CHECK (true);
+
+  -- Enable Realtime
+  ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  ALTER PUBLICATION supabase_realtime ADD TABLE private_messages;
+
+  3. Go to Settings → API and copy your URL + anon key above.
+*/
+
+// ===================== Initialize Supabase =====================
+let sb;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) {
+  console.warn('Supabase not configured yet. Please add your credentials in app.js');
+}
+
+// ===================== DOM Elements =====================
+const chatMessages = document.getElementById('chatMessages');
+const messageForm = document.getElementById('messageForm');
+const messageInput = document.getElementById('messageInput');
+const authModal = document.getElementById('authModal');
+const registerForm = document.getElementById('registerForm');
+const loginForm = document.getElementById('loginForm');
+const authRegister = document.getElementById('authRegister');
+const authLogin = document.getElementById('authLogin');
+const authWelcome = document.getElementById('authWelcome');
+const registerError = document.getElementById('registerError');
+const loginError = document.getElementById('loginError');
+const userNameDisplay = document.getElementById('userName');
+const userIdSmall = document.getElementById('userIdSmall');
+const btnLogout = document.getElementById('btnLogout');
+const themeToggle = document.getElementById('themeToggle');
+const sidebarOpenBtn = document.getElementById('sidebarOpenBtn');
+const sidebar = document.getElementById('sidebar');
+const userCountNum = document.getElementById('userCountNum');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+const contactsList = document.getElementById('contactsList');
+const contactsLabel = document.getElementById('contactsLabel');
+const convGeneral = document.getElementById('convGeneral');
+const btnBackChat = document.getElementById('btnBackChat');
+const chatRoomIcon = document.getElementById('chatRoomIcon');
+const chatRoomTitle = document.getElementById('chatRoomTitle');
+const chatRoomDesc = document.getElementById('chatRoomDesc');
+
+// ===================== State =====================
+let currentUser = null; // { id, username }
+let realtimeChannel = null;
+let presenceChannel = null;
+let dmChannel = null;
+let currentView = 'general'; // 'general' or { contactId, contactName }
+let contactsData = [];
+let onlineUserIds = new Set();
+
+// Try to restore session from localStorage
+try {
+  const saved = localStorage.getItem('convo_session');
+  if (saved) currentUser = JSON.parse(saved);
+} catch (e) { /* ignore */ }
+
+// ===================== Helpers =====================
+function generateUniqueId() {
+  // 8-char alphanumeric ID
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let id = '';
+  for (let i = 0; i < 8; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return id;
+}
+
+function getInitials(name) {
+  return name
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+}
+
+function formatTime(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function sanitize(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function scrollToBottom() {
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function showError(el, msg) {
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function hideError(el) {
+  el.textContent = '';
+  el.classList.add('hidden');
+}
+
+// Simple hash function for password (client-side, using SubtleCrypto)
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ===================== Theme =====================
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    themeToggle.checked = true;
+  }
+}
+
+themeToggle.addEventListener('change', () => {
+  if (themeToggle.checked) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+  }
+});
+
+// ===================== Sidebar (Mobile) =====================
+let overlay = document.createElement('div');
+overlay.className = 'sidebar-overlay';
+document.body.appendChild(overlay);
+
+function openSidebar() {
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+}
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+}
+
+sidebarOpenBtn.addEventListener('click', openSidebar);
+overlay.addEventListener('click', closeSidebar);
+
+// ===================== Auth Modal Navigation =====================
+function showAuthModal() {
+  authModal.classList.remove('hidden');
+}
+
+function hideAuthModal() {
+  authModal.classList.add('hidden');
+}
+
+const authGreeting = document.getElementById('authGreeting');
+
+function showAuthView(view) {
+  authGreeting.classList.add('hidden');
+  authRegister.classList.add('hidden');
+  authLogin.classList.add('hidden');
+  authWelcome.classList.add('hidden');
+  hideError(registerError);
+  hideError(loginError);
+  view.classList.remove('hidden');
+}
+
+document.getElementById('goToRegister').addEventListener('click', () => {
+  showAuthView(authRegister);
+});
+
+document.getElementById('goToLogin').addEventListener('click', () => {
+  showAuthView(authLogin);
+});
+
+document.getElementById('showLogin').addEventListener('click', (e) => {
+  e.preventDefault();
+  showAuthView(authLogin);
+});
+
+document.getElementById('showRegister').addEventListener('click', (e) => {
+  e.preventDefault();
+  showAuthView(authRegister);
+});
+
+document.getElementById('backFromRegister').addEventListener('click', (e) => {
+  e.preventDefault();
+  showAuthView(authGreeting);
+});
+
+document.getElementById('backFromLogin').addEventListener('click', (e) => {
+  e.preventDefault();
+  showAuthView(authGreeting);
+});
+
+// ===================== Set User in UI =====================
+function setUserUI(user) {
+  userNameDisplay.textContent = user.username;
+  userIdSmall.textContent = 'ID: ' + user.id;
+  document.getElementById('userAvatar').innerHTML = `<span>${getInitials(user.username)}</span>`;
+}
+
+// ===================== Register =====================
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(registerError);
+
+  const username = document.getElementById('registerUsername').value.trim();
+  const password = document.getElementById('registerPassword').value;
+
+  if (username.length < 2) {
+    showError(registerError, 'Username must be at least 2 characters.');
+    return;
+  }
+  if (password.length < 4) {
+    showError(registerError, 'Password must be at least 4 characters.');
+    return;
+  }
+
+  const registerBtn = document.getElementById('registerBtn');
+  registerBtn.disabled = true;
+  registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Creating...';
+
+  try {
+    // Check if username is taken
+    const { data: existing } = await sb
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      showError(registerError, 'Username is already taken. Choose another.');
+      registerBtn.disabled = false;
+      registerBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i> Register';
+      return;
+    }
+
+    const userId = generateUniqueId();
+    const passHash = await hashPassword(password);
+
+    const { error } = await sb
+      .from('users')
+      .insert([{ id: userId, username: username, password_hash: passHash }]);
+
+    if (error) {
+      showError(registerError, 'Registration failed: ' + error.message);
+      registerBtn.disabled = false;
+      registerBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i> Register';
+      return;
+    }
+
+    // Success — show the welcome screen with unique ID
+    currentUser = { id: userId, username: username };
+    localStorage.setItem('convo_session', JSON.stringify(currentUser));
+
+    document.getElementById('displayUniqueId').textContent = userId;
+    authRegister.classList.add('hidden');
+    authWelcome.classList.remove('hidden');
+
+  } catch (err) {
+    showError(registerError, 'An error occurred. Please try again.');
+  }
+
+  registerBtn.disabled = false;
+  registerBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i> Register';
+});
+
+// Copy ID button
+document.getElementById('btnCopyId').addEventListener('click', () => {
+  const id = document.getElementById('displayUniqueId').textContent;
+  navigator.clipboard.writeText(id).then(() => {
+    const btn = document.getElementById('btnCopyId');
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 1500);
+  });
+});
+
+// Enter chat after registration
+document.getElementById('btnEnterChat').addEventListener('click', () => {
+  hideAuthModal();
+  setUserUI(currentUser);
+  messageInput.focus();
+  initChat();
+});
+
+// ===================== Login =====================
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(loginError);
+
+  const loginId = document.getElementById('loginId').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!loginId || !password) {
+    showError(loginError, 'Please fill in all fields.');
+    return;
+  }
+
+  const loginBtn = document.getElementById('loginBtn');
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Logging in...';
+
+  try {
+    const passHash = await hashPassword(password);
+
+    // Try matching by ID first, then by username
+    let { data: users } = await sb
+      .from('users')
+      .select('id, username, password_hash')
+      .or(`id.eq.${loginId},username.eq.${loginId}`)
+      .limit(1);
+
+    if (!users || users.length === 0) {
+      showError(loginError, 'No account found with that ID or username.');
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="fas fa-arrow-right me-2"></i> Log In';
+      return;
+    }
+
+    const user = users[0];
+    if (user.password_hash !== passHash) {
+      showError(loginError, 'Incorrect password.');
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="fas fa-arrow-right me-2"></i> Log In';
+      return;
+    }
+
+    // Success
+    currentUser = { id: user.id, username: user.username };
+    localStorage.setItem('convo_session', JSON.stringify(currentUser));
+    hideAuthModal();
+    setUserUI(currentUser);
+    messageInput.focus();
+    initChat();
+
+  } catch (err) {
+    showError(loginError, 'An error occurred. Please try again.');
+  }
+
+  loginBtn.disabled = false;
+  loginBtn.innerHTML = '<i class="fas fa-arrow-right me-2"></i> Log In';
+});
+
+// ===================== Logout =====================
+const logoutModal = document.getElementById('logoutModal');
+const logoutConfirm = document.getElementById('logoutConfirm');
+const logoutCancel = document.getElementById('logoutCancel');
+
+function showLogoutModal() {
+  logoutModal.classList.remove('hidden');
+}
+
+function hideLogoutModal() {
+  logoutModal.classList.add('hidden');
+}
+
+btnLogout.addEventListener('click', () => {
+  showLogoutModal();
+});
+
+logoutCancel.addEventListener('click', () => {
+  hideLogoutModal();
+});
+
+logoutModal.addEventListener('click', (e) => {
+  if (e.target === logoutModal) hideLogoutModal();
+});
+
+logoutConfirm.addEventListener('click', () => {
+  hideLogoutModal();
+
+  localStorage.removeItem('convo_session');
+  currentUser = null;
+  currentView = 'general';
+  contactsData = [];
+  onlineUserIds.clear();
+  userNameDisplay.textContent = 'Guest';
+  userIdSmall.textContent = '';
+  document.getElementById('userAvatar').innerHTML = '<i class="fas fa-user"></i>';
+
+  // Reset chat header
+  chatRoomIcon.innerHTML = '<i class="fas fa-hashtag me-1"></i>';
+  chatRoomTitle.textContent = 'general';
+  chatRoomDesc.textContent = 'Public chat room – say hello!';
+  btnBackChat.classList.add('hidden');
+  contactsList.innerHTML = '';
+  contactsLabel.classList.add('hidden');
+  convGeneral.classList.add('active');
+  messageInput.placeholder = 'Type a message...';
+
+  // Reset auth modal to greeting view
+  showAuthView(authGreeting);
+  showAuthModal();
+
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  if (presenceChannel) sb.removeChannel(presenceChannel);
+  if (dmChannel) sb.removeChannel(dmChannel);
+});
+
+// ===================== Message Rendering =====================
+function createMessageEl(msg) {
+  const isOwn = currentUser && msg.user_id === currentUser.id;
+  const div = document.createElement('div');
+  div.className = `message ${isOwn ? 'own' : ''}`;
+  div.innerHTML = `
+    <div class="message-avatar">${sanitize(getInitials(msg.username))}</div>
+    <div class="message-content">
+      <div class="message-bubble">${sanitize(msg.content)}</div>
+      <div class="message-meta">
+        <span class="message-sender">${sanitize(msg.username)}</span>
+        <span class="message-time">${formatTime(msg.created_at)}</span>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+// ===================== Load Messages =====================
+async function loadMessages() {
+  if (!sb) return;
+  
+  const { data, error } = await sb
+    .from('messages')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(100);
+
+  if (error) {
+    console.error('Error loading messages:', error);
+    return;
+  }
+
+  const welcomeMsg = document.getElementById('welcomeMsg');
+  chatMessages.innerHTML = '';
+  if (data.length === 0 && welcomeMsg) {
+    chatMessages.appendChild(welcomeMsg);
+  }
+
+  data.forEach(msg => {
+    chatMessages.appendChild(createMessageEl(msg));
+  });
+
+  scrollToBottom();
+}
+
+// ===================== Send Message =====================
+messageForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const content = messageInput.value.trim();
+  if (!content || !currentUser || !sb) return;
+
+  messageInput.value = '';
+  messageInput.focus();
+
+  if (currentView === 'general') {
+    const { error } = await sb
+      .from('messages')
+      .insert([{
+        user_id: currentUser.id,
+        username: currentUser.username,
+        content: content
+      }]);
+
+    if (error) {
+      console.error('Error sending message:', error);
+      messageInput.value = content;
+    }
+  } else {
+    const { error } = await sb
+      .from('private_messages')
+      .insert([{
+        sender_id: currentUser.id,
+        receiver_id: currentView.contactId,
+        sender_name: currentUser.username,
+        content: content
+      }]);
+
+    if (error) {
+      console.error('Error sending DM:', error);
+      messageInput.value = content;
+    }
+  }
+});
+
+// ===================== Realtime Subscription =====================
+function subscribeToMessages() {
+  if (!sb) return;
+
+  realtimeChannel = sb
+    .channel('public:messages')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'messages'
+    }, (payload) => {
+      if (currentView === 'general') {
+        chatMessages.appendChild(createMessageEl(payload.new));
+        scrollToBottom();
+      }
+    })
+    .subscribe();
+}
+
+// ===================== Presence (Online Users) =====================
+function subscribeToPresence() {
+  if (!sb || !currentUser) return;
+
+  presenceChannel = sb.channel('online-users', {
+    config: {
+      presence: { key: currentUser.id }
+    }
+  });
+
+  presenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = presenceChannel.presenceState();
+      updateOnlineUsers(state);
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await presenceChannel.track({
+          user_id: currentUser.id,
+          username: currentUser.username
+        });
+      }
+    });
+}
+
+function updateOnlineUsers(state) {
+  const users = [];
+  onlineUserIds.clear();
+  for (const key in state) {
+    const presences = state[key];
+    if (presences && presences.length > 0) {
+      users.push(presences[0]);
+      onlineUserIds.add(presences[0].user_id);
+    }
+  }
+
+  userCountNum.textContent = users.length;
+  renderContacts();
+}
+
+// ===================== Search Users =====================
+let searchTimeout;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  const query = searchInput.value.trim();
+  if (query.length < 2) {
+    searchResults.classList.add('hidden');
+    searchResults.innerHTML = '';
+    return;
+  }
+  searchTimeout = setTimeout(() => searchUsers(query), 300);
+});
+
+async function searchUsers(query) {
+  if (!sb || !currentUser) return;
+
+  const { data, error } = await sb
+    .from('users')
+    .select('id, username')
+    .ilike('username', `%${query}%`)
+    .neq('id', currentUser.id)
+    .limit(10);
+
+  if (error || !data) {
+    searchResults.classList.add('hidden');
+    return;
+  }
+
+  if (data.length === 0) {
+    searchResults.innerHTML = '<div class="search-empty"><i class="fas fa-user-slash me-1"></i> No users found</div>';
+    searchResults.classList.remove('hidden');
+    return;
+  }
+
+  searchResults.innerHTML = data.map(u => {
+    const isContact = contactsData.some(c => c.contact_id === u.id);
+    return `
+      <div class="search-result-item" data-user-id="${sanitize(u.id)}" data-username="${sanitize(u.username)}">
+        <div class="search-result-avatar">${sanitize(getInitials(u.username))}</div>
+        <div class="search-result-info">
+          <span class="search-result-name">${sanitize(u.username)}</span>
+          <span class="search-result-id">ID: ${sanitize(u.id)}</span>
+        </div>
+        <button class="btn-search-action ${isContact ? 'btn-msg' : 'btn-add'}" title="${isContact ? 'Message' : 'Add Contact'}">
+          <i class="fas ${isContact ? 'fa-comment' : 'fa-user-plus'}"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+  searchResults.classList.remove('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-section')) {
+    searchResults.classList.add('hidden');
+  }
+});
+
+searchResults.addEventListener('click', async (e) => {
+  const item = e.target.closest('.search-result-item');
+  if (!item) return;
+
+  const userId = item.dataset.userId;
+  const username = item.dataset.username;
+  const isContact = contactsData.some(c => c.contact_id === userId);
+
+  if (!isContact) {
+    await addContact(userId, username);
+  }
+
+  searchResults.classList.add('hidden');
+  searchInput.value = '';
+  openDM(userId, username);
+});
+
+// ===================== Contacts Management =====================
+async function loadContacts() {
+  if (!sb || !currentUser) return;
+
+  const { data, error } = await sb
+    .from('contacts')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('is_favorite', { ascending: false })
+    .order('contact_name', { ascending: true });
+
+  if (error) {
+    console.error('Error loading contacts:', error);
+    return;
+  }
+
+  contactsData = data || [];
+  renderContacts();
+}
+
+async function addContact(contactId, contactName) {
+  if (!sb || !currentUser) return;
+  if (contactsData.some(c => c.contact_id === contactId)) return;
+
+  const { data, error } = await sb
+    .from('contacts')
+    .insert([{
+      user_id: currentUser.id,
+      contact_id: contactId,
+      contact_name: contactName,
+      is_favorite: false
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding contact:', error);
+    return;
+  }
+
+  contactsData.push(data);
+  renderContacts();
+}
+
+async function toggleFavorite(contactId) {
+  const contact = contactsData.find(c => c.contact_id === contactId);
+  if (!contact) return;
+
+  const newVal = !contact.is_favorite;
+  const { error } = await sb
+    .from('contacts')
+    .update({ is_favorite: newVal })
+    .eq('id', contact.id);
+
+  if (error) {
+    console.error('Error toggling favorite:', error);
+    return;
+  }
+
+  contact.is_favorite = newVal;
+  renderContacts();
+}
+
+function renderContacts() {
+  if (!contactsData || contactsData.length === 0) {
+    contactsLabel.classList.add('hidden');
+    contactsList.innerHTML = '';
+    return;
+  }
+
+  contactsLabel.classList.remove('hidden');
+
+  const sorted = [...contactsData].sort((a, b) => {
+    if (a.is_favorite !== b.is_favorite) return b.is_favorite ? 1 : -1;
+    return a.contact_name.localeCompare(b.contact_name);
+  });
+
+  contactsList.innerHTML = sorted.map(c => {
+    const isOnline = onlineUserIds.has(c.contact_id);
+    const isActive = currentView !== 'general' && currentView.contactId === c.contact_id;
+    return `
+      <div class="conv-item ${isActive ? 'active' : ''}" data-contact-id="${sanitize(c.contact_id)}" data-contact-name="${sanitize(c.contact_name)}">
+        <div class="conv-icon">
+          ${isOnline ? '<span class="contact-online-dot"></span>' : ''}
+          <span>${sanitize(getInitials(c.contact_name))}</span>
+        </div>
+        <div class="conv-info">
+          <span class="conv-name">${sanitize(c.contact_name)}</span>
+        </div>
+        <button class="btn-fav ${c.is_favorite ? 'is-fav' : ''}" data-fav-id="${sanitize(c.contact_id)}" title="${c.is_favorite ? 'Unfavorite' : 'Favorite'}">
+          <i class="fas fa-star"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+contactsList.addEventListener('click', (e) => {
+  const favBtn = e.target.closest('.btn-fav');
+  if (favBtn) {
+    e.stopPropagation();
+    toggleFavorite(favBtn.dataset.favId);
+    return;
+  }
+
+  const item = e.target.closest('.conv-item');
+  if (item) {
+    openDM(item.dataset.contactId, item.dataset.contactName);
+  }
+});
+
+convGeneral.addEventListener('click', () => {
+  openGeneralChat();
+});
+
+// ===================== DM (Private Messaging) =====================
+function openDM(contactId, contactName) {
+  currentView = { contactId, contactName };
+
+  chatRoomIcon.innerHTML = '<i class="fas fa-user me-1"></i>';
+  chatRoomTitle.textContent = contactName;
+  chatRoomDesc.textContent = 'Private conversation';
+  btnBackChat.classList.remove('hidden');
+
+  convGeneral.classList.remove('active');
+  renderContacts();
+
+  loadDMMessages(contactId);
+  closeSidebar();
+
+  messageInput.placeholder = `Message ${contactName}...`;
+  messageInput.focus();
+}
+
+function openGeneralChat() {
+  currentView = 'general';
+
+  chatRoomIcon.innerHTML = '<i class="fas fa-hashtag me-1"></i>';
+  chatRoomTitle.textContent = 'general';
+  chatRoomDesc.textContent = 'Public chat room – say hello!';
+  btnBackChat.classList.add('hidden');
+
+  convGeneral.classList.add('active');
+  renderContacts();
+
+  loadMessages();
+  closeSidebar();
+
+  messageInput.placeholder = 'Type a message...';
+  messageInput.focus();
+}
+
+async function loadDMMessages(contactId) {
+  if (!sb || !currentUser) return;
+
+  chatMessages.innerHTML = '';
+
+  const { data, error } = await sb
+    .from('private_messages')
+    .select('*')
+    .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${currentUser.id})`)
+    .order('created_at', { ascending: true })
+    .limit(100);
+
+  if (error) {
+    console.error('Error loading DMs:', error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'system-message';
+    emptyMsg.innerHTML = '<i class="fas fa-lock"></i> This is the start of your private conversation.';
+    chatMessages.appendChild(emptyMsg);
+  }
+
+  (data || []).forEach(msg => {
+    chatMessages.appendChild(createDMMessageEl(msg));
+  });
+
+  scrollToBottom();
+}
+
+function createDMMessageEl(msg) {
+  const isOwn = currentUser && msg.sender_id === currentUser.id;
+  const div = document.createElement('div');
+  div.className = `message ${isOwn ? 'own' : ''}`;
+  div.innerHTML = `
+    <div class="message-avatar">${sanitize(getInitials(msg.sender_name))}</div>
+    <div class="message-content">
+      <div class="message-bubble">${sanitize(msg.content)}</div>
+      <div class="message-meta">
+        <span class="message-sender">${sanitize(msg.sender_name)}</span>
+        <span class="message-time">${formatTime(msg.created_at)}</span>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function subscribeToDMs() {
+  if (!sb || !currentUser) return;
+
+  dmChannel = sb
+    .channel('private:dms')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'private_messages'
+    }, (payload) => {
+      const msg = payload.new;
+      if (currentView !== 'general') {
+        const otherId = currentView.contactId;
+        if ((msg.sender_id === currentUser.id && msg.receiver_id === otherId) ||
+            (msg.sender_id === otherId && msg.receiver_id === currentUser.id)) {
+          chatMessages.appendChild(createDMMessageEl(msg));
+          scrollToBottom();
+        }
+      }
+    })
+    .subscribe();
+}
+
+btnBackChat.addEventListener('click', () => {
+  openGeneralChat();
+});
+
+// ===================== Init =====================
+function initChat() {
+  loadMessages();
+  loadContacts();
+  subscribeToMessages();
+  subscribeToDMs();
+  subscribeToPresence();
+}
+
+function init() {
+  initTheme();
+
+  if (currentUser && currentUser.id && currentUser.username) {
+    setUserUI(currentUser);
+    hideAuthModal();
+    initChat();
+  } else {
+    showAuthModal();
+  }
+
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    const notice = document.createElement('div');
+    notice.className = 'system-message';
+    notice.innerHTML = `
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Setup Required:</strong> Open <code>app.js</code> and add your Supabase URL & anon key.
+    `;
+    chatMessages.appendChild(notice);
+  }
+}
+
+init();
