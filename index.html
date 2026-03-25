@@ -131,16 +131,35 @@
       <div class="chat-input-area">
         <form id="messageForm" autocomplete="off">
           <div class="input-wrapper">
+            <div class="emoji-picker-wrapper">
+              <button type="button" class="btn-input-icon btn-emoji" id="btnEmoji" title="Emoji">
+                <i class="fas fa-smile"></i>
+              </button>
+              <div class="emoji-panel hidden" id="emojiPanel"></div>
+            </div>
             <input
               type="text"
               id="messageInput"
               class="message-input"
               placeholder="Type a message..."
               maxlength="1000"
-              required
             >
+            <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar" class="hidden">
+            <button type="button" class="btn-input-icon btn-attach" id="btnAttach" title="Attach file (max 10MB)">
+              <i class="fas fa-paperclip"></i>
+            </button>
             <button type="submit" class="btn-send" id="btnSend" title="Send message">
               <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+          <div class="file-preview hidden" id="filePreview">
+            <div class="file-preview-info">
+              <i class="fas fa-file file-preview-icon"></i>
+              <span class="file-preview-name" id="filePreviewName"></span>
+              <span class="file-preview-size" id="filePreviewSize"></span>
+            </div>
+            <button type="button" class="btn-file-remove" id="btnFileRemove" title="Remove">
+              <i class="fas fa-times"></i>
             </button>
           </div>
         </form>

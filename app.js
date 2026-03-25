@@ -127,6 +127,16 @@ const btnBackChat = document.getElementById('btnBackChat');
 const chatRoomIcon = document.getElementById('chatRoomIcon');
 const chatRoomTitle = document.getElementById('chatRoomTitle');
 const chatRoomDesc = document.getElementById('chatRoomDesc');
+const btnEmoji = document.getElementById('btnEmoji');
+const emojiPanel = document.getElementById('emojiPanel');
+const btnAttach = document.getElementById('btnAttach');
+const fileInput = document.getElementById('fileInput');
+const filePreview = document.getElementById('filePreview');
+const filePreviewName = document.getElementById('filePreviewName');
+const filePreviewSize = document.getElementById('filePreviewSize');
+const btnFileRemove = document.getElementById('btnFileRemove');
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 // ===================== State =====================
 let currentUser = null; // { id, username }
@@ -136,6 +146,7 @@ let dmChannel = null;
 let currentView = 'general'; // 'general' or { contactId, contactName }
 let contactsData = [];
 let onlineUserIds = new Set();
+let selectedFile = null;
 
 // Try to restore session from localStorage
 try {
@@ -233,6 +244,108 @@ function closeSidebar() {
 
 sidebarOpenBtn.addEventListener('click', openSidebar);
 overlay.addEventListener('click', closeSidebar);
+
+// ===================== Emoji Picker =====================
+const EMOJIS = [
+  '😀','😂','😍','🥰','😎','🤔','😭','🥳','😅','🤣','😊','🙃','😜','🤗','😏',
+  '🔥','❤️','👍','👎','👏','🙌','💪','🎉','✨','💯','💀','👀','🫶','🤝','🫡',
+  '😢','😤','🤯','🥺','😇','🤩','😋','🤤','😴','🤮','🤧','😷','🥶','🥵','😈',
+  '👻','💩','🤡','👽','🤖','😺','🐶','🐱','🦊','🐻','🐼','🐨','🦁','🐸','🐵'
+];
+
+function buildEmojiPanel() {
+  emojiPanel.innerHTML = EMOJIS.map(e =>
+    `<button type="button" class="emoji-item">${e}</button>`
+  ).join('');
+}
+
+buildEmojiPanel();
+
+btnEmoji.addEventListener('click', (e) => {
+  e.stopPropagation();
+  emojiPanel.classList.toggle('hidden');
+});
+
+emojiPanel.addEventListener('click', (e) => {
+  const item = e.target.closest('.emoji-item');
+  if (!item) return;
+  messageInput.value += item.textContent;
+  messageInput.focus();
+  emojiPanel.classList.add('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.emoji-picker-wrapper')) {
+    emojiPanel.classList.add('hidden');
+  }
+});
+
+// ===================== File Attachment =====================
+btnAttach.addEventListener('click', () => {
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  if (file.size > MAX_FILE_SIZE) {
+    alert('File is too large. Maximum size is 10MB.');
+    fileInput.value = '';
+    return;
+  }
+
+  selectedFile = file;
+  filePreviewName.textContent = file.name;
+  filePreviewSize.textContent = formatFileSize(file.size);
+  filePreview.classList.remove('hidden');
+
+  // Set icon based on type
+  const icon = filePreview.querySelector('.file-preview-icon');
+  if (file.type.startsWith('image/')) {
+    icon.className = 'fas fa-image file-preview-icon';
+  } else {
+    icon.className = 'fas fa-file file-preview-icon';
+  }
+});
+
+btnFileRemove.addEventListener('click', () => {
+  selectedFile = null;
+  fileInput.value = '';
+  filePreview.classList.add('hidden');
+});
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function uploadFile(file) {
+  const ext = file.name.split('.').pop();
+  const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+  const filePath = `uploads/${fileName}`;
+
+  const { data, error } = await sb.storage
+    .from('chat-files')
+    .upload(filePath, file);
+
+  if (error) {
+    console.error('Upload error:', error);
+    return null;
+  }
+
+  const { data: urlData } = sb.storage
+    .from('chat-files')
+    .getPublicUrl(filePath);
+
+  return {
+    url: urlData.publicUrl,
+    name: file.name,
+    type: file.type,
+    size: file.size
+  };
+}
 
 // ===================== Auth Modal Navigation =====================
 function showAuthModal() {
@@ -489,14 +602,27 @@ logoutConfirm.addEventListener('click', () => {
 });
 
 // ===================== Message Rendering =====================
+function renderFileContent(fileDataStr) {
+  try {
+    const f = JSON.parse(fileDataStr);
+    if (f.type && f.type.startsWith('image/')) {
+      return `<img src="${sanitize(f.url)}" alt="${sanitize(f.name)}" class="message-image" onclick="window.open('${sanitize(f.url)}','_blank')">`;
+    }
+    return `<a href="${sanitize(f.url)}" target="_blank" rel="noopener" class="message-file-link"><i class="fas fa-file-download"></i> ${sanitize(f.name)}</a>`;
+  } catch { return ''; }
+}
+
 function createMessageEl(msg) {
   const isOwn = currentUser && msg.user_id === currentUser.id;
   const div = document.createElement('div');
   div.className = `message ${isOwn ? 'own' : ''}`;
+  const fileHtml = msg.file_data ? renderFileContent(msg.file_data) : '';
+  const textHtml = msg.content ? `<div class="message-bubble">${sanitize(msg.content)}</div>` : '';
   div.innerHTML = `
     <div class="message-avatar">${sanitize(getInitials(msg.username))}</div>
     <div class="message-content">
-      <div class="message-bubble">${sanitize(msg.content)}</div>
+      ${textHtml}
+      ${fileHtml}
       <div class="message-meta">
         <span class="message-sender">${sanitize(msg.username)}</span>
         <span class="message-time">${formatTime(msg.created_at)}</span>
@@ -539,10 +665,26 @@ messageForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const content = messageInput.value.trim();
-  if (!content || !currentUser || !sb) return;
+  if ((!content && !selectedFile) || !currentUser || !sb) return;
 
   messageInput.value = '';
   messageInput.focus();
+
+  let fileData = null;
+  if (selectedFile) {
+    const btnSend = document.getElementById('btnSend');
+    btnSend.disabled = true;
+    btnSend.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    fileData = await uploadFile(selectedFile);
+    btnSend.disabled = false;
+    btnSend.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    selectedFile = null;
+    fileInput.value = '';
+    filePreview.classList.add('hidden');
+  }
+
+  const msgContent = content || '';
+  const fileJson = fileData ? JSON.stringify(fileData) : null;
 
   if (currentView === 'general') {
     const { error } = await sb
@@ -550,7 +692,8 @@ messageForm.addEventListener('submit', async (e) => {
       .insert([{
         user_id: currentUser.id,
         username: currentUser.username,
-        content: content
+        content: msgContent,
+        file_data: fileJson
       }]);
 
     if (error) {
@@ -564,7 +707,8 @@ messageForm.addEventListener('submit', async (e) => {
         sender_id: currentUser.id,
         receiver_id: currentView.contactId,
         sender_name: currentUser.username,
-        content: content
+        content: msgContent,
+        file_data: fileJson
       }]);
 
     if (error) {
@@ -895,10 +1039,13 @@ function createDMMessageEl(msg) {
   const isOwn = currentUser && msg.sender_id === currentUser.id;
   const div = document.createElement('div');
   div.className = `message ${isOwn ? 'own' : ''}`;
+  const fileHtml = msg.file_data ? renderFileContent(msg.file_data) : '';
+  const textHtml = msg.content ? `<div class="message-bubble">${sanitize(msg.content)}</div>` : '';
   div.innerHTML = `
     <div class="message-avatar">${sanitize(getInitials(msg.sender_name))}</div>
     <div class="message-content">
-      <div class="message-bubble">${sanitize(msg.content)}</div>
+      ${textHtml}
+      ${fileHtml}
       <div class="message-meta">
         <span class="message-sender">${sanitize(msg.sender_name)}</span>
         <span class="message-time">${formatTime(msg.created_at)}</span>
