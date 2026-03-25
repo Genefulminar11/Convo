@@ -571,6 +571,88 @@ body, html {
   display: none !important;
 }
 
+/* ===================== DM Notification Toast ===================== */
+.dm-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  z-index: 11000;
+  cursor: pointer;
+  max-width: 320px;
+  transform: translateX(120%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 4px solid #0d6efd;
+}
+
+.dm-toast.show {
+  transform: translateX(0);
+}
+
+.dm-toast.hidden {
+  display: flex !important;
+  transform: translateX(120%);
+}
+
+.dm-toast-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dm-toast-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.dm-toast-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.dm-toast-msg {
+  display: block;
+  font-size: 0.78rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .dm-toast {
+  background: #1e2a4a;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  border-left-color: #4da6ff;
+}
+
+[data-theme="dark"] .dm-toast-avatar {
+  background: #4da6ff;
+}
+
+[data-theme="dark"] .dm-toast-name {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .dm-toast-msg {
+  color: #94a3b8;
+}
+
 .online-count {
   font-size: 0.85rem;
   color: #666;
@@ -604,6 +686,67 @@ body, html {
 
 .system-message i {
   margin-right: 0.25rem;
+}
+
+/* Missed Call Message */
+.missed-call-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  align-self: center;
+  background: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: 1rem;
+  padding: 0.6rem 1.1rem;
+  max-width: 280px;
+  animation: fadeIn 0.25s ease;
+}
+
+.missed-call-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc3545;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.missed-call-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.missed-call-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.missed-call-time {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .missed-call-msg {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.25);
+}
+
+[data-theme="dark"] .missed-call-icon {
+  background: rgba(220, 53, 69, 0.2);
+  color: #f87171;
+}
+
+[data-theme="dark"] .missed-call-label {
+  color: #f87171;
+}
+
+[data-theme="dark"] .missed-call-time {
+  color: #64748b;
 }
 
 /* Message Bubble */
@@ -1158,6 +1301,296 @@ body, html {
 .reply-bar-close:hover {
   background: #dc3545;
   color: #fff;
+}
+
+/* ===================== Call Buttons (DM header) ===================== */
+.call-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.call-buttons.hidden {
+  display: none !important;
+}
+
+.btn-call {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-call:hover {
+  background: #0d6efd;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+/* ===================== Incoming Call Modal ===================== */
+.call-modal-box {
+  background: #1e293b;
+  border-radius: 1.5rem;
+  padding: 2.5rem 2rem;
+  width: 92%;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.35s ease;
+}
+
+.call-modal-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 auto 1rem;
+  animation: callPulse 2s ease-in-out infinite;
+}
+
+@keyframes callPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
+  50% { box-shadow: 0 0 0 15px rgba(13, 110, 253, 0); }
+}
+
+.call-modal-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.call-modal-status {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 2rem;
+}
+
+.call-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+.btn-call-action {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-call-decline {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-call-decline:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.btn-call-accept {
+  background: #22c55e;
+  color: #fff;
+}
+
+.btn-call-accept:hover {
+  background: #16a34a;
+  transform: scale(1.1);
+}
+
+/* ===================== Active Call Overlay ===================== */
+.call-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.call-overlay.hidden {
+  display: none !important;
+}
+
+.call-overlay-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.call-remote-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.call-remote-video.hidden {
+  display: none !important;
+}
+
+.call-local-video {
+  position: absolute;
+  bottom: 100px;
+  right: 20px;
+  width: 150px;
+  height: 200px;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  z-index: 3;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.call-local-video.hidden {
+  display: none !important;
+}
+
+.call-info-center {
+  z-index: 2;
+  text-align: center;
+}
+
+.call-avatar-large {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #1e3a6e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4da6ff;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 auto 1.25rem;
+}
+
+.call-peer-name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.35rem;
+}
+
+.call-timer {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-bottom: 0;
+}
+
+.call-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  z-index: 4;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+}
+
+.btn-call-ctrl {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-call-ctrl:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-call-ctrl.muted {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.btn-call-ctrl.video-off {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.btn-call-end {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+
+.btn-call-end:hover {
+  background: #dc2626 !important;
+  transform: scale(1.1);
+}
+
+/* Dark mode call buttons */
+[data-theme="dark"] .btn-call {
+  background: rgba(77, 166, 255, 0.15);
+  color: #4da6ff;
+}
+
+[data-theme="dark"] .btn-call:hover {
+  background: #4da6ff;
+  color: #0f172a;
+}
+
+@media (max-width: 575.98px) {
+  .call-local-video {
+    width: 100px;
+    height: 140px;
+    bottom: 90px;
+    right: 12px;
+  }
+
+  .call-controls {
+    bottom: 20px;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .btn-call-ctrl {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+  }
 }
 
 /* ===================== Username Modal ===================== */

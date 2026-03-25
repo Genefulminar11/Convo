@@ -678,6 +678,8 @@ logoutConfirm.addEventListener('click', () => {
   if (realtimeChannel) sb.removeChannel(realtimeChannel);
   if (presenceChannel) sb.removeChannel(presenceChannel);
   if (dmChannel) sb.removeChannel(dmChannel);
+  if (callSignalChannel) sb.removeChannel(callSignalChannel);
+  endCall(false);
 });
 
 // ===================== Message Rendering =====================
@@ -1104,6 +1106,8 @@ function openDM(contactId, contactName) {
   btnBackChat.classList.remove('hidden');
   document.getElementById('onlineCount').classList.add('hidden');
 
+  callButtons.classList.remove('hidden');
+
   const dmDot = document.getElementById('dmStatusDot');
   const isOnline = onlineUserIds.has(contactId);
   dmDot.classList.remove('hidden');
@@ -1172,6 +1176,23 @@ async function loadDMMessages(contactId) {
 
 function createDMMessageEl(msg) {
   const isOwn = currentUser && msg.sender_id === currentUser.id;
+
+  // Handle missed call system messages
+  if (msg.content && msg.content.startsWith('__missed_call__:')) {
+    const callType = msg.content.split(':')[1];
+    const icon = callType === 'video' ? 'fa-video' : 'fa-phone';
+    const div = document.createElement('div');
+    div.className = 'missed-call-msg';
+    div.innerHTML = `
+      <div class="missed-call-icon"><i class="fas ${icon}"></i></div>
+      <div class="missed-call-info">
+        <span class="missed-call-label">${isOwn ? 'No answer' : 'Missed ' + callType + ' call'}</span>
+        <span class="missed-call-time">${formatTime(msg.created_at)}</span>
+      </div>
+    `;
+    return div;
+  }
+
   const div = document.createElement('div');
   div.className = `message ${isOwn ? 'own' : ''}`;
   const fileHtml = msg.file_data ? renderFileContent(msg.file_data) : '';
@@ -1195,6 +1216,54 @@ function createDMMessageEl(msg) {
   return div;
 }
 
+// ===================== DM Notifications =====================
+const dmToast = document.getElementById('dmToast');
+const dmToastAvatar = document.getElementById('dmToastAvatar');
+const dmToastName = document.getElementById('dmToastName');
+const dmToastMsg = document.getElementById('dmToastMsg');
+let toastTimeout = null;
+
+function showDMNotification(senderName, content, senderId) {
+  dmToastAvatar.textContent = getInitials(senderName);
+  dmToastName.textContent = senderName;
+  dmToastMsg.textContent = content || '📎 Sent an attachment';
+  dmToast.dataset.senderId = senderId;
+  dmToast.dataset.senderName = senderName;
+
+  dmToast.classList.remove('hidden');
+  dmToast.classList.add('show');
+
+  // Play notification sound
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    gain.gain.value = 0.15;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) { /* ignore */ }
+
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    dmToast.classList.remove('show');
+    dmToast.classList.add('hidden');
+  }, 4000);
+}
+
+dmToast.addEventListener('click', () => {
+  const senderId = dmToast.dataset.senderId;
+  const senderName = dmToast.dataset.senderName;
+  if (senderId && senderName) {
+    openDM(senderId, senderName);
+  }
+  dmToast.classList.remove('show');
+  dmToast.classList.add('hidden');
+  clearTimeout(toastTimeout);
+});
+
 function subscribeToDMs() {
   if (!sb || !currentUser) return;
 
@@ -1204,8 +1273,28 @@ function subscribeToDMs() {
       event: 'INSERT',
       schema: 'public',
       table: 'private_messages'
-    }, (payload) => {
+    }, async (payload) => {
       const msg = payload.new;
+      // Ignore messages not involving us
+      if (msg.sender_id !== currentUser.id && msg.receiver_id !== currentUser.id) return;
+
+      const isFromOther = msg.sender_id !== currentUser.id;
+
+      // If someone new messages us, auto-add them as a contact
+      if (isFromOther) {
+        const alreadyContact = contactsData.some(c => c.contact_id === msg.sender_id);
+        if (!alreadyContact) {
+          await addContact(msg.sender_id, msg.sender_name);
+        }
+
+        // Show notification if not currently viewing their chat
+        const isViewingTheirChat = currentView !== 'general' && currentView.contactId === msg.sender_id;
+        if (!isViewingTheirChat) {
+          showDMNotification(msg.sender_name, msg.content, msg.sender_id);
+        }
+      }
+
+      // Render message if we're in that DM
       if (currentView !== 'general') {
         const otherId = currentView.contactId;
         if ((msg.sender_id === currentUser.id && msg.receiver_id === otherId) ||
@@ -1222,6 +1311,340 @@ btnBackChat.addEventListener('click', () => {
   openGeneralChat();
 });
 
+// ===================== WebRTC Calling =====================
+const callButtons = document.getElementById('callButtons');
+const btnVoiceCall = document.getElementById('btnVoiceCall');
+const btnVideoCall = document.getElementById('btnVideoCall');
+const incomingCallModal = document.getElementById('incomingCallModal');
+const incomingCallAvatar = document.getElementById('incomingCallAvatar');
+const incomingCallName = document.getElementById('incomingCallName');
+const incomingCallType = document.getElementById('incomingCallType');
+const btnDeclineCall = document.getElementById('btnDeclineCall');
+const btnAcceptCall = document.getElementById('btnAcceptCall');
+const callOverlay = document.getElementById('callOverlay');
+const remoteVideo = document.getElementById('remoteVideo');
+const localVideo = document.getElementById('localVideo');
+const callInfoCenter = document.getElementById('callInfoCenter');
+const callAvatar = document.getElementById('callAvatar');
+const callPeerName = document.getElementById('callPeerName');
+const callTimer = document.getElementById('callTimer');
+const btnToggleMute = document.getElementById('btnToggleMute');
+const btnToggleVideo = document.getElementById('btnToggleVideo');
+const btnEndCall = document.getElementById('btnEndCall');
+
+let peerConnection = null;
+let localStream = null;
+let callSignalChannel = null;
+let callTimerInterval = null;
+let callStartTime = null;
+let incomingCallData = null;
+let isMuted = false;
+let isVideoOff = false;
+
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+function subscribeToCallSignals() {
+  if (!sb || !currentUser) return;
+
+  callSignalChannel = sb
+    .channel(`call-signals-${currentUser.id}`)
+    .on('broadcast', { event: 'call-offer' }, ({ payload }) => {
+      handleIncomingCall(payload);
+    })
+    .on('broadcast', { event: 'call-answer' }, ({ payload }) => {
+      handleCallAnswer(payload);
+    })
+    .on('broadcast', { event: 'ice-candidate' }, ({ payload }) => {
+      handleICECandidate(payload);
+    })
+    .on('broadcast', { event: 'call-end' }, () => {
+      endCall(false);
+    })
+    .on('broadcast', { event: 'call-declined' }, async ({ payload }) => {
+      endCall(false);
+      // Insert missed call message from caller's perspective
+      if (currentView !== 'general' && currentUser) {
+        const callType = payload.withVideo ? 'video' : 'voice';
+        await sb.from('private_messages').insert([{
+          sender_id: currentUser.id,
+          receiver_id: currentView.contactId,
+          sender_name: currentUser.username,
+          content: `__missed_call__:${callType}`,
+          file_data: null,
+          reply_to_content: null,
+          reply_to_username: null
+        }]);
+      }
+    })
+    .subscribe();
+}
+
+function handleIncomingCall(data) {
+  incomingCallData = data;
+  incomingCallAvatar.textContent = getInitials(data.callerName);
+  incomingCallName.textContent = data.callerName;
+  incomingCallType.textContent = data.withVideo ? 'Incoming video call...' : 'Incoming voice call...';
+  incomingCallModal.classList.remove('hidden');
+}
+
+btnDeclineCall.addEventListener('click', () => {
+  if (incomingCallData) {
+    sendCallSignal(incomingCallData.callerId, 'call-declined', {
+      withVideo: incomingCallData.withVideo
+    });
+  }
+  incomingCallData = null;
+  incomingCallModal.classList.add('hidden');
+});
+
+btnAcceptCall.addEventListener('click', async () => {
+  if (!incomingCallData) return;
+  incomingCallModal.classList.add('hidden');
+
+  const data = incomingCallData;
+  incomingCallData = null;
+
+  showCallOverlay(data.callerName, data.withVideo);
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: data.withVideo
+    });
+
+    if (data.withVideo) {
+      localVideo.srcObject = localStream;
+      localVideo.classList.remove('hidden');
+    }
+
+    peerConnection = new RTCPeerConnection(ICE_SERVERS);
+
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+
+    peerConnection.ontrack = (event) => {
+      remoteVideo.srcObject = event.streams[0];
+      if (data.withVideo) {
+        remoteVideo.classList.remove('hidden');
+        callInfoCenter.style.display = 'none';
+      }
+    };
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendCallSignal(data.callerId, 'ice-candidate', { candidate: event.candidate });
+      }
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+      if (peerConnection.connectionState === 'connected') {
+        startCallTimer();
+      }
+      if (['disconnected', 'failed', 'closed'].includes(peerConnection.connectionState)) {
+        endCall(false);
+      }
+    };
+
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    sendCallSignal(data.callerId, 'call-answer', { answer });
+
+  } catch (err) {
+    console.error('Failed to accept call:', err);
+    endCall(true);
+  }
+});
+
+async function startCall(withVideo) {
+  if (currentView === 'general' || !currentUser) return;
+
+  const peerId = currentView.contactId;
+  const peerName = currentView.contactName;
+
+  showCallOverlay(peerName, withVideo);
+  callTimer.textContent = 'Calling...';
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: withVideo
+    });
+
+    if (withVideo) {
+      localVideo.srcObject = localStream;
+      localVideo.classList.remove('hidden');
+    }
+
+    peerConnection = new RTCPeerConnection(ICE_SERVERS);
+
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+
+    peerConnection.ontrack = (event) => {
+      remoteVideo.srcObject = event.streams[0];
+      if (withVideo) {
+        remoteVideo.classList.remove('hidden');
+        callInfoCenter.style.display = 'none';
+      }
+    };
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendCallSignal(peerId, 'ice-candidate', { candidate: event.candidate });
+      }
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+      if (peerConnection.connectionState === 'connected') {
+        startCallTimer();
+      }
+      if (['disconnected', 'failed', 'closed'].includes(peerConnection.connectionState)) {
+        endCall(false);
+      }
+    };
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    sendCallSignal(peerId, 'call-offer', {
+      offer,
+      callerId: currentUser.id,
+      callerName: currentUser.username,
+      withVideo
+    });
+
+  } catch (err) {
+    console.error('Failed to start call:', err);
+    alert('Could not access microphone/camera. Please allow permissions.');
+    endCall(false);
+  }
+}
+
+async function handleCallAnswer(data) {
+  if (!peerConnection) return;
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+}
+
+async function handleICECandidate(data) {
+  if (!peerConnection) return;
+  try {
+    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+  } catch (err) {
+    console.error('ICE candidate error:', err);
+  }
+}
+
+function sendCallSignal(targetUserId, event, payload) {
+  if (!sb) return;
+  sb.channel(`call-signals-${targetUserId}`).subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      sb.channel(`call-signals-${targetUserId}`).send({
+        type: 'broadcast',
+        event,
+        payload
+      });
+    }
+  });
+}
+
+function showCallOverlay(peerName, withVideo) {
+  callAvatar.textContent = getInitials(peerName);
+  callPeerName.textContent = peerName;
+  callTimer.textContent = 'Connecting...';
+  callInfoCenter.style.display = '';
+  remoteVideo.classList.add('hidden');
+  localVideo.classList.add('hidden');
+  callOverlay.classList.remove('hidden');
+  isMuted = false;
+  isVideoOff = !withVideo;
+  btnToggleMute.classList.remove('muted');
+  btnToggleMute.innerHTML = '<i class="fas fa-microphone"></i>';
+  if (withVideo) {
+    btnToggleVideo.classList.remove('video-off');
+    btnToggleVideo.innerHTML = '<i class="fas fa-video"></i>';
+  } else {
+    btnToggleVideo.classList.add('video-off');
+    btnToggleVideo.innerHTML = '<i class="fas fa-video-slash"></i>';
+  }
+}
+
+function startCallTimer() {
+  callStartTime = Date.now();
+  callTimer.textContent = '00:00';
+  callTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const secs = String(elapsed % 60).padStart(2, '0');
+    callTimer.textContent = `${mins}:${secs}`;
+  }, 1000);
+}
+
+function endCall(notify) {
+  if (notify && currentView !== 'general') {
+    sendCallSignal(currentView.contactId, 'call-end', {});
+  }
+
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+
+  if (callTimerInterval) {
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+  }
+
+  callStartTime = null;
+  remoteVideo.srcObject = null;
+  localVideo.srcObject = null;
+  callOverlay.classList.add('hidden');
+  incomingCallModal.classList.add('hidden');
+}
+
+btnVoiceCall.addEventListener('click', () => startCall(false));
+btnVideoCall.addEventListener('click', () => startCall(true));
+btnEndCall.addEventListener('click', () => endCall(true));
+
+btnToggleMute.addEventListener('click', () => {
+  if (!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  btnToggleMute.classList.toggle('muted', isMuted);
+  btnToggleMute.innerHTML = isMuted
+    ? '<i class="fas fa-microphone-slash"></i>'
+    : '<i class="fas fa-microphone"></i>';
+});
+
+btnToggleVideo.addEventListener('click', async () => {
+  if (!localStream) return;
+  const videoTracks = localStream.getVideoTracks();
+
+  if (videoTracks.length > 0) {
+    isVideoOff = !isVideoOff;
+    videoTracks.forEach(t => t.enabled = !isVideoOff);
+    localVideo.classList.toggle('hidden', isVideoOff);
+  }
+
+  btnToggleVideo.classList.toggle('video-off', isVideoOff);
+  btnToggleVideo.innerHTML = isVideoOff
+    ? '<i class="fas fa-video-slash"></i>'
+    : '<i class="fas fa-video"></i>';
+});
+
 // ===================== Init =====================
 function initChat() {
   loadMessages();
@@ -1229,6 +1652,7 @@ function initChat() {
   subscribeToMessages();
   subscribeToDMs();
   subscribeToPresence();
+  subscribeToCallSignals();
 }
 
 function init() {
