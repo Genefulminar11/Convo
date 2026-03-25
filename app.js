@@ -895,6 +895,14 @@ function updateOnlineUsers(state) {
 
   userCountNum.textContent = users.length;
   renderContacts();
+
+  // Update DM header status if in a DM
+  if (currentView !== 'general') {
+    const dmDot = document.getElementById('dmStatusDot');
+    const isOnline = onlineUserIds.has(currentView.contactId);
+    dmDot.className = `dm-status-dot ${isOnline ? 'online' : 'offline'}`;
+    chatRoomDesc.textContent = isOnline ? 'Online' : 'Offline';
+  }
 }
 
 // ===================== Search Users =====================
@@ -1093,8 +1101,14 @@ function openDM(contactId, contactName) {
 
   chatRoomIcon.innerHTML = '<i class="fas fa-user me-1"></i>';
   chatRoomTitle.textContent = contactName;
-  chatRoomDesc.textContent = 'Private conversation';
   btnBackChat.classList.remove('hidden');
+  document.getElementById('onlineCount').classList.add('hidden');
+
+  const dmDot = document.getElementById('dmStatusDot');
+  const isOnline = onlineUserIds.has(contactId);
+  dmDot.classList.remove('hidden');
+  dmDot.className = `dm-status-dot ${isOnline ? 'online' : 'offline'}`;
+  chatRoomDesc.textContent = isOnline ? 'Online' : 'Offline';
 
   convGeneral.classList.remove('active');
   renderContacts();
@@ -1113,6 +1127,7 @@ function openGeneralChat() {
   chatRoomTitle.textContent = 'general';
   chatRoomDesc.textContent = 'Public chat room – say hello!';
   btnBackChat.classList.add('hidden');
+  document.getElementById('onlineCount').classList.remove('hidden');
 
   convGeneral.classList.add('active');
   renderContacts();
