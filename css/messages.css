@@ -1,0 +1,395 @@
+/* ===================== Messages Area ===================== */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #f8fafc;
+}
+
+/* System message */
+.system-message {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: rgba(13, 110, 253, 0.05);
+  border-radius: 1rem;
+  align-self: center;
+  max-width: 80%;
+}
+
+.system-message i {
+  margin-right: 0.25rem;
+}
+
+/* Missed Call Message */
+.missed-call-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  align-self: center;
+  background: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: 1rem;
+  padding: 0.6rem 1.1rem;
+  max-width: 280px;
+  animation: fadeIn 0.25s ease;
+}
+
+.missed-call-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc3545;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.missed-call-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.missed-call-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.missed-call-time {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .missed-call-msg {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.25);
+}
+
+[data-theme="dark"] .missed-call-icon {
+  background: rgba(220, 53, 69, 0.2);
+  color: #f87171;
+}
+
+[data-theme="dark"] .missed-call-label {
+  color: #f87171;
+}
+
+[data-theme="dark"] .missed-call-time {
+  color: #64748b;
+}
+
+/* Message Bubble */
+.message {
+  display: flex;
+  gap: 0.6rem;
+  max-width: 75%;
+  animation: fadeIn 0.25s ease;
+  position: relative;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.own {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.message.own .message-avatar {
+  background: #284d99;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-bubble {
+  padding: 0.65rem 1rem;
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  background: #fff;
+  color: #1a1a2e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.message.own .message-bubble {
+  background: #0d6efd;
+  color: #fff;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+  padding: 0 0.25rem;
+}
+
+.message-sender {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+.message.own .message-sender {
+  color: #284d99;
+}
+
+.message-time {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+/* Image in message */
+.message-image {
+  max-width: 280px;
+  max-height: 300px;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.message-image:hover {
+  opacity: 0.9;
+}
+
+.message-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(13, 110, 253, 0.08);
+  border-radius: 0.5rem;
+  color: #0d6efd;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 0.25rem;
+  transition: background 0.2s;
+}
+
+.message-file-link:hover {
+  background: rgba(13, 110, 253, 0.15);
+}
+
+/* Reply Button (on hover) */
+.btn-reply {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.message:hover .btn-reply {
+  opacity: 1;
+}
+
+.btn-reply:hover {
+  background: #0d6efd;
+  color: #fff;
+}
+
+/* Admin Delete Button (on messages) */
+.btn-admin-delete {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.message:hover .btn-admin-delete {
+  opacity: 1;
+}
+
+.btn-admin-delete:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+/* Clear All Messages Button */
+.btn-clear-all {
+  color: #dc3545 !important;
+}
+
+.btn-clear-all:hover {
+  background: rgba(220, 53, 69, 0.12) !important;
+  color: #dc3545 !important;
+}
+
+/* Reply Quote (inside message bubble) */
+.reply-quote {
+  background: rgba(13, 110, 253, 0.08);
+  border-left: 3px solid #0d6efd;
+  border-radius: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  margin-bottom: 0.3rem;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.reply-quote-name {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0d6efd;
+}
+
+.reply-quote-text {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.message.own .reply-quote {
+  background: rgba(255, 255, 255, 0.15);
+  border-left-color: rgba(255, 255, 255, 0.5);
+}
+
+.message.own .reply-quote-name {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message.own .reply-quote-text {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ===================== Dark Mode - Messages ===================== */
+[data-theme="dark"] .chat-messages {
+  background: #1a1a2e;
+}
+
+[data-theme="dark"] .system-message {
+  color: #64748b;
+  background: rgba(77, 166, 255, 0.08);
+}
+
+[data-theme="dark"] .message-bubble {
+  background: #1e2a4a;
+  color: #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .message.own .message-bubble {
+  background: #4da6ff;
+  color: #fff;
+}
+
+[data-theme="dark"] .message-sender {
+  color: #4da6ff;
+}
+
+[data-theme="dark"] .message.own .message-sender {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .message-avatar {
+  background: #4da6ff;
+}
+
+[data-theme="dark"] .message.own .message-avatar {
+  background: #0f3460;
+}
+
+[data-theme="dark"] .btn-reply {
+  background: #1e2a4a;
+  color: #64748b;
+}
+
+[data-theme="dark"] .btn-reply:hover {
+  background: #4da6ff;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .btn-admin-delete {
+  background: #1e2a4a;
+  color: #64748b;
+}
+
+[data-theme="dark"] .btn-admin-delete:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+[data-theme="dark"] .btn-clear-all:hover {
+  background: rgba(220, 53, 69, 0.2) !important;
+}
+
+[data-theme="dark"] .reply-quote {
+  background: rgba(77, 166, 255, 0.1);
+  border-left-color: #4da6ff;
+}
+
+[data-theme="dark"] .reply-quote-name {
+  color: #4da6ff;
+}
+
+[data-theme="dark"] .reply-quote-text {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .message-file-link {
+  background: rgba(77, 166, 255, 0.1);
+  color: #4da6ff;
+}
+
+[data-theme="dark"] .message-file-link:hover {
+  background: rgba(77, 166, 255, 0.2);
+}

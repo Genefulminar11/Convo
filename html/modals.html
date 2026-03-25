@@ -1,0 +1,75 @@
+<!-- Logout Confirmation Modal -->
+<div class="modal-overlay hidden" id="logoutModal">
+  <div class="logout-modal-box">
+    <h4 class="logout-title">Are you sure you want to log out?</h4>
+    <div class="logout-actions">
+      <button type="button" class="logout-btn-cancel" id="logoutCancel">
+        CANCEL
+      </button>
+      <button type="button" class="logout-btn-confirm" id="logoutConfirm">
+        LOG OUT
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Incoming Call Modal -->
+<div class="modal-overlay hidden" id="incomingCallModal">
+  <div class="call-modal-box">
+    <div class="call-modal-avatar" id="incomingCallAvatar"></div>
+    <h4 class="call-modal-name" id="incomingCallName">User</h4>
+    <p class="call-modal-status" id="incomingCallType">Incoming voice call...</p>
+    <div class="call-modal-actions">
+      <button class="btn-call-action btn-call-decline" id="btnDeclineCall" title="Decline">
+        <i class="fas fa-phone-slash"></i>
+      </button>
+      <button class="btn-call-action btn-call-accept" id="btnAcceptCall" title="Accept">
+        <i class="fas fa-phone"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Active Call Overlay -->
+<div class="call-overlay hidden" id="callOverlay">
+  <div class="call-overlay-inner">
+    <video class="call-remote-video hidden" id="remoteVideo" autoplay playsinline></video>
+    <video class="call-local-video hidden" id="localVideo" autoplay playsinline muted></video>
+    <div class="call-info-center" id="callInfoCenter">
+      <div class="call-avatar-large" id="callAvatar"></div>
+      <h3 class="call-peer-name" id="callPeerName">User</h3>
+      <p class="call-timer" id="callTimer">Connecting...</p>
+    </div>
+    <div class="call-controls">
+      <button class="btn-call-ctrl" id="btnToggleMute" title="Mute">
+        <i class="fas fa-microphone"></i>
+      </button>
+      <button class="btn-call-ctrl" id="btnToggleVideo" title="Camera">
+        <i class="fas fa-video"></i>
+      </button>
+      <button class="btn-call-ctrl btn-call-end" id="btnEndCall" title="End Call">
+        <i class="fas fa-phone-slash"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal-overlay hidden" id="profileModal">
+  <div class="profile-modal-box">
+    <button class="profile-modal-close" id="btnCloseProfile">
+      <i class="fas fa-times"></i>
+    </button>
+    <iframe id="profileIframe" src="profile.html" class="profile-iframe"></iframe>
+  </div>
+</div>
+
+<!-- Admin Panel Modal -->
+<div class="modal-overlay hidden" id="adminModal">
+  <div class="admin-modal-box">
+    <button class="admin-modal-close" id="btnCloseAdmin">
+      <i class="fas fa-times"></i>
+    </button>
+    <iframe id="adminIframe" src="admin.html" class="profile-iframe admin-iframe"></iframe>
+  </div>
+</div>

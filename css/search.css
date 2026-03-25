@@ -1,0 +1,228 @@
+/* ===================== Search Section ===================== */
+.search-section {
+  padding: 0 0.75rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.65rem;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s;
+}
+
+.search-input-wrapper:focus-within {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.search-icon {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #fff;
+  min-width: 0;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Search Results Dropdown */
+.search-results {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  top: 100%;
+  margin-top: 0.35rem;
+  background: #fff;
+  border-radius: 0.65rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.search-result-item:hover {
+  background: rgba(13, 110, 253, 0.06);
+}
+
+.search-result-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.search-result-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.search-result-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1a1a2e;
+}
+
+.search-result-id {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.search-result-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.btn-search-action {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-search-action.btn-add {
+  background: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+}
+
+.btn-search-action.btn-add:hover {
+  background: #0d6efd;
+  color: white;
+}
+
+.btn-search-action.btn-msg {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.btn-search-action.btn-msg:hover {
+  background: #22c55e;
+  color: white;
+}
+
+.btn-search-action.btn-block {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.btn-search-action.btn-block:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.search-result-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+.search-result-status.contact {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.search-result-status.blocked {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.search-result-status.self {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.search-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+/* ===================== Dark Mode - Search ===================== */
+[data-theme="dark"] .search-input-wrapper {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .search-input-wrapper:focus-within {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .search-input {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .search-results {
+  background: #1e2a4a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .search-result-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .search-result-name {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .search-result-avatar {
+  background: #4da6ff;
+}
+
+[data-theme="dark"] .btn-search-action.btn-add {
+  background: rgba(77, 166, 255, 0.15);
+  color: #4da6ff;
+}
+
+[data-theme="dark"] .btn-search-action.btn-add:hover {
+  background: #4da6ff;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .btn-search-action.btn-msg {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+[data-theme="dark"] .btn-search-action.btn-msg:hover {
+  background: #22c55e;
+  color: #0f172a;
+}

@@ -1,0 +1,144 @@
+<!-- Auth Modal -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal-box">
+
+    <!-- Greeting View (shown first) -->
+    <div id="authGreeting">
+      <div class="modal-header-custom">
+        <i class="fas fa-comments modal-icon"></i>
+        <h4>Welcome to Convo</h4>
+        <p>Real-time messaging, right from your browser</p>
+      </div>
+      <div class="greeting-actions">
+        <button type="button" class="modal-btn" id="goToRegister">
+          <i class="fas fa-user-plus me-2"></i> Register
+        </button>
+        <button type="button" class="modal-btn modal-btn-outline" id="goToLogin">
+          <i class="fas fa-sign-in-alt me-2"></i> Log In
+        </button>
+      </div>
+    </div>
+
+    <!-- Register View -->
+    <div id="authRegister" class="hidden">
+      <div class="modal-header-custom">
+        <i class="fas fa-user-plus modal-icon"></i>
+        <h4>Create Account</h4>
+        <p>Fill in your details to get started</p>
+      </div>
+      <form id="registerForm">
+        <div class="modal-input-row">
+          <input
+            type="text"
+            id="registerFirstName"
+            class="modal-input"
+            placeholder="First name"
+            maxlength="30"
+            minlength="1"
+            required
+            autofocus
+          >
+          <input
+            type="text"
+            id="registerLastName"
+            class="modal-input"
+            placeholder="Last name"
+            maxlength="30"
+            minlength="1"
+            required
+          >
+        </div>
+        <input
+          type="email"
+          id="registerEmail"
+          class="modal-input"
+          placeholder="Email address"
+          maxlength="100"
+          required
+        >
+        <input
+          type="text"
+          id="registerUsername"
+          class="modal-input"
+          placeholder="Choose a username"
+          maxlength="30"
+          minlength="2"
+          required
+        >
+        <input
+          type="password"
+          id="registerPassword"
+          class="modal-input"
+          placeholder="Create a password"
+          maxlength="100"
+          minlength="4"
+          required
+        >
+        <div class="auth-error hidden" id="registerError"></div>
+        <button type="submit" class="modal-btn" id="registerBtn">
+          <i class="fas fa-user-plus me-2"></i> Register
+        </button>
+      </form>
+      <div class="auth-switch">
+        Already have an account? <a href="#" id="showLogin">Log in</a>
+        <br><a href="#" id="backFromRegister" class="auth-back"><i class="fas fa-arrow-left me-1"></i> Back</a>
+      </div>
+    </div>
+
+    <!-- Login View -->
+    <div id="authLogin" class="hidden">
+      <div class="modal-header-custom">
+        <i class="fas fa-sign-in-alt modal-icon"></i>
+        <h4>Welcome Back</h4>
+        <p>Log in with your email, username, or unique ID</p>
+      </div>
+      <form id="loginForm">
+        <input
+          type="text"
+          id="loginId"
+          class="modal-input"
+          placeholder="Email, username, or unique ID"
+          required
+          autofocus
+        >
+        <input
+          type="password"
+          id="loginPassword"
+          class="modal-input"
+          placeholder="Your password"
+          required
+        >
+        <div class="auth-error hidden" id="loginError"></div>
+        <button type="submit" class="modal-btn" id="loginBtn">
+          <i class="fas fa-arrow-right me-2"></i> Log In
+        </button>
+      </form>
+      <div class="auth-switch">
+        Don't have an account? <a href="#" id="showRegister">Register</a>
+        <br><a href="#" id="backFromLogin" class="auth-back"><i class="fas fa-arrow-left me-1"></i> Back</a>
+      </div>
+    </div>
+
+    <!-- Welcome / ID Display (shown after register) -->
+    <div id="authWelcome" class="hidden">
+      <div class="modal-header-custom">
+        <i class="fas fa-check-circle modal-icon" style="color: #22c55e;"></i>
+        <h4>You're Registered!</h4>
+        <p>Save your unique ID — you'll need it to log back in</p>
+      </div>
+      <div class="unique-id-display">
+        <span class="unique-id-label">Your Unique ID</span>
+        <div class="unique-id-box">
+          <code id="displayUniqueId"></code>
+          <button type="button" class="btn-copy" id="btnCopyId" title="Copy ID">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+      <button type="button" class="modal-btn" id="btnEnterChat">
+        <i class="fas fa-comments me-2"></i> Enter Chat
+      </button>
+    </div>
+
+  </div>
+</div>

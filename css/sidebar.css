@@ -1,0 +1,171 @@
+/* ===================== Sidebar ===================== */
+.sidebar {
+  width: 340px;
+  min-width: 340px;
+  background: linear-gradient(180deg, #1a3a6c 0%, #14325a 100%);
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.brand i {
+  font-size: 1.3rem;
+  color: #4da6ff;
+}
+
+.brand-name {
+  font-family: -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 900;
+  font-size: 1.35rem;
+  letter-spacing: 2px;
+  color: #fff;
+}
+
+/* User Profile */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin: 0 0.75rem 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Edit Name Button */
+.btn-edit-name {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 0.25rem;
+  transition: color 0.2s;
+}
+
+.btn-edit-name:hover {
+  color: #fff;
+}
+
+/* User info column */
+.user-info-col {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.user-id-small {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-family: monospace;
+  opacity: 0.8;
+}
+
+/* Settings Button */
+.btn-settings {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+
+.btn-settings:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  transform: rotate(45deg);
+}
+
+/* ===================== Dark Mode - Sidebar ===================== */
+[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, #0f3460 0%, #0a2647 100%);
+}
+
+[data-theme="dark"] .brand i,
+[data-theme="dark"] .brand-name {
+  color: #4da6ff;
+}
+
+[data-theme="dark"] .brand {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .user-profile {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .user-avatar {
+  background: #4da6ff;
+}
+
+[data-theme="dark"] .user-name {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .user-id-small {
+  color: #64748b;
+}
+
+[data-theme="dark"] .btn-settings {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .btn-settings:hover {
+  color: #4da6ff;
+  background: rgba(77, 166, 255, 0.15);
+}

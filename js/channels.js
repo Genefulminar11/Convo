@@ -32,12 +32,34 @@ window.Convo = window.Convo || {};
   const channelInfoModal = document.getElementById('channelInfoModal');
   const channelInfoName = document.getElementById('channelInfoName');
   const channelInfoDesc = document.getElementById('channelInfoDesc');
+  const channelInfoBadge = document.getElementById('channelInfoBadge');
   const channelInfoMembers = document.getElementById('channelInfoMembers');
   const channelInfoMemberCount = document.getElementById('channelInfoMemberCount');
+  const channelRequestsSection = document.getElementById('channelRequestsSection');
+  const channelRequestsCount = document.getElementById('channelRequestsCount');
+  const channelRequestsList = document.getElementById('channelRequestsList');
   const btnCloseChannelInfo = document.getElementById('btnCloseChannelInfo');
   const btnLeaveChannel = document.getElementById('btnLeaveChannel');
   const btnDeleteChannel = document.getElementById('btnDeleteChannel');
   const btnChannelInfo = document.getElementById('btnChannelInfo');
+
+  const channelRequestToast = document.getElementById('channelRequestToast');
+  const channelRequestToastTitle = document.getElementById('channelRequestToastTitle');
+  const channelRequestToastMsg = document.getElementById('channelRequestToastMsg');
+  let requestToastTimeout = null;
+
+  // ===================== Request Toast =====================
+  function showRequestToast(title, msg) {
+    channelRequestToastTitle.textContent = title;
+    channelRequestToastMsg.textContent = msg;
+    channelRequestToast.classList.remove('hidden');
+    channelRequestToast.classList.add('show');
+    clearTimeout(requestToastTimeout);
+    requestToastTimeout = setTimeout(() => {
+      channelRequestToast.classList.remove('show');
+      channelRequestToast.classList.add('hidden');
+    }, 5000);
+  }
 
   // ===================== Load User's Channels =====================
   async function loadChannels() {
@@ -46,7 +68,7 @@ window.Convo = window.Convo || {};
 
     const { data, error } = await sb
       .from('channel_members')
-      .select('channel_id, role, channels(id, name, description, creator_id)')
+      .select('channel_id, role, channels(id, name, description, creator_id, is_public)')
       .eq('user_id', currentUser.id);
 
     if (error) {
@@ -59,6 +81,7 @@ window.Convo = window.Convo || {};
       name: d.channels.name,
       description: d.channels.description,
       creator_id: d.channels.creator_id,
+      is_public: d.channels.is_public,
       role: d.role
     }));
 
@@ -75,9 +98,10 @@ window.Convo = window.Convo || {};
 
     channelsList.innerHTML = userChannels.map(ch => {
       const isActive = currentView !== 'general' && currentView.channelId === ch.id;
+      const icon = ch.is_public ? 'fa-bullhorn' : 'fa-lock';
       return `
         <div class="conv-item ${isActive ? 'active' : ''}" data-channel-id="${sanitize(ch.id)}" data-channel-name="${sanitize(ch.name)}">
-          <div class="conv-icon channel-icon"><i class="fas fa-bullhorn"></i></div>
+          <div class="conv-icon channel-icon ${ch.is_public ? '' : 'private'}"><i class="fas ${icon}"></i></div>
           <div class="conv-info">
             <span class="conv-name">${sanitize(ch.name)}</span>
             <span class="conv-preview">${sanitize(ch.description || 'Channel')}</span>
@@ -261,6 +285,9 @@ window.Convo = window.Convo || {};
     createChannelName.value = '';
     createChannelDesc.value = '';
     createChannelError.classList.add('hidden');
+    // Reset visibility to public
+    const publicRadio = createChannelForm.querySelector('input[value="public"]');
+    if (publicRadio) publicRadio.checked = true;
     createChannelName.focus();
   });
 
@@ -279,6 +306,8 @@ window.Convo = window.Convo || {};
 
     const name = createChannelName.value.trim();
     const desc = createChannelDesc.value.trim();
+    const visibility = createChannelForm.querySelector('input[name="channelVisibility"]:checked').value;
+    const isPublic = visibility === 'public';
 
     if (!name || name.length < 2) {
       createChannelError.textContent = 'Channel name must be at least 2 characters.';
@@ -308,11 +337,11 @@ window.Convo = window.Convo || {};
         name: name,
         description: desc,
         creator_id: currentUser.id,
-        is_public: true
+        is_public: isPublic
       }]);
 
     if (chErr) {
-      createChannelError.textContent = 'Failed to create channel.';
+      createChannelError.textContent = chErr.message || 'Failed to create channel.';
       createChannelError.classList.remove('hidden');
       console.error('Create channel error:', chErr);
       return;
@@ -352,9 +381,11 @@ window.Convo = window.Convo || {};
   });
 
   async function loadBrowseChannels(query) {
-    if (!sb) return;
+    const currentUser = state.getCurrentUser();
+    if (!sb || !currentUser) return;
 
-    let q = sb.from('channels').select('*').eq('is_public', true).order('created_at', { ascending: false }).limit(50);
+    // Load all channels (public + private)
+    let q = sb.from('channels').select('*').order('created_at', { ascending: false }).limit(50);
     if (query && query.length >= 1) {
       q = q.ilike('name', `%${query}%`);
     }
@@ -383,22 +414,48 @@ window.Convo = window.Convo || {};
       memberCounts[m.channel_id] = (memberCounts[m.channel_id] || 0) + 1;
     });
 
+    // Get user's pending requests
+    const { data: pendingReqs } = await sb
+      .from('channel_join_requests')
+      .select('channel_id, status')
+      .eq('user_id', currentUser.id)
+      .in('channel_id', channelIds);
+
+    const pendingMap = {};
+    (pendingReqs || []).forEach(r => { pendingMap[r.channel_id] = r.status; });
+
     const joinedIds = new Set(userChannels.map(c => c.id));
 
     browseChannelsList.innerHTML = data.map(ch => {
       const isJoined = joinedIds.has(ch.id);
       const count = memberCounts[ch.id] || 0;
+      const reqStatus = pendingMap[ch.id];
+      const isPrivate = !ch.is_public;
+      const icon = isPrivate ? 'fa-lock' : 'fa-bullhorn';
+      const badge = isPrivate ? '<span class="browse-channel-private-badge"><i class="fas fa-lock me-1"></i>Private</span>' : '';
+
+      let btnHtml;
+      if (isJoined) {
+        btnHtml = `<button class="btn-channel-join joined" data-channel-id="${sanitize(ch.id)}" data-channel-name="${sanitize(ch.name)}"><i class="fas fa-check me-1"></i>Joined</button>`;
+      } else if (isPrivate && reqStatus === 'pending') {
+        btnHtml = `<button class="btn-channel-join pending" disabled><i class="fas fa-clock me-1"></i>Pending</button>`;
+      } else if (isPrivate && reqStatus === 'rejected') {
+        btnHtml = `<button class="btn-channel-join rejected" disabled><i class="fas fa-times me-1"></i>Rejected</button>`;
+      } else if (isPrivate) {
+        btnHtml = `<button class="btn-channel-join request" data-channel-id="${sanitize(ch.id)}" data-channel-name="${sanitize(ch.name)}"><i class="fas fa-paper-plane me-1"></i>Request</button>`;
+      } else {
+        btnHtml = `<button class="btn-channel-join" data-channel-id="${sanitize(ch.id)}" data-channel-name="${sanitize(ch.name)}"><i class="fas fa-sign-in-alt me-1"></i>Join</button>`;
+      }
+
       return `
         <div class="browse-channel-item" data-channel-id="${sanitize(ch.id)}" data-channel-name="${sanitize(ch.name)}">
-          <div class="browse-channel-icon"><i class="fas fa-bullhorn"></i></div>
+          <div class="browse-channel-icon"><i class="fas ${icon}"></i></div>
           <div class="browse-channel-info">
-            <span class="browse-channel-name">${sanitize(ch.name)}</span>
+            <span class="browse-channel-name">${sanitize(ch.name)} ${badge}</span>
             <span class="browse-channel-desc">${sanitize(ch.description || 'No description')}</span>
             <span class="browse-channel-meta"><i class="fas fa-users me-1"></i>${count} member${count !== 1 ? 's' : ''}</span>
           </div>
-          <button class="btn-channel-join ${isJoined ? 'joined' : ''}" data-channel-id="${sanitize(ch.id)}" data-channel-name="${sanitize(ch.name)}">
-            ${isJoined ? '<i class="fas fa-check me-1"></i>Joined' : '<i class="fas fa-sign-in-alt me-1"></i>Join'}
-          </button>
+          ${btnHtml}
         </div>
       `;
     }).join('');
@@ -406,18 +463,46 @@ window.Convo = window.Convo || {};
 
   browseChannelsList.addEventListener('click', async (e) => {
     const joinBtn = e.target.closest('.btn-channel-join');
-    if (!joinBtn) return;
+    if (!joinBtn || joinBtn.disabled) return;
 
     const currentUser = state.getCurrentUser();
     const channelId = joinBtn.dataset.channelId;
     const channelName = joinBtn.dataset.channelName;
 
+    // Already joined — open it
     if (joinBtn.classList.contains('joined')) {
       browseChannelsModal.classList.add('hidden');
       openChannel(channelId, channelName);
       return;
     }
 
+    // Private channel — send join request
+    if (joinBtn.classList.contains('request')) {
+      const { error } = await sb.from('channel_join_requests').insert([{
+        channel_id: channelId,
+        user_id: currentUser.id,
+        status: 'pending'
+      }]);
+
+      if (error) {
+        console.error('Join request error:', error);
+        return;
+      }
+
+      joinBtn.classList.remove('request');
+      joinBtn.classList.add('pending');
+      joinBtn.disabled = true;
+      joinBtn.innerHTML = '<i class="fas fa-clock me-1"></i>Pending';
+
+      browseChannelsModal.classList.add('hidden');
+      showRequestToast(
+        'Request Submitted',
+        `Your request to join #${channelName} has been submitted. Wait for the creator's approval.`
+      );
+      return;
+    }
+
+    // Public channel — join directly
     const { error } = await sb.from('channel_members').insert([{
       channel_id: channelId,
       user_id: currentUser.id,
@@ -447,6 +532,14 @@ window.Convo = window.Convo || {};
     channelInfoName.textContent = ch.name;
     channelInfoDesc.textContent = ch.description || 'No description';
 
+    if (ch.is_public) {
+      channelInfoBadge.innerHTML = '<i class="fas fa-globe me-1"></i>Public';
+      channelInfoBadge.className = 'channel-visibility-badge public';
+    } else {
+      channelInfoBadge.innerHTML = '<i class="fas fa-lock me-1"></i>Private';
+      channelInfoBadge.className = 'channel-visibility-badge private';
+    }
+
     const { data: members } = await sb
       .from('channel_members')
       .select('user_id, role, users(username)')
@@ -474,8 +567,97 @@ window.Convo = window.Convo || {};
       `;
     }).join('');
 
+    // Show pending join requests to creator
+    if (isCreator && !ch.is_public) {
+      const { data: requests } = await sb
+        .from('channel_join_requests')
+        .select('id, user_id, status, created_at, users(username)')
+        .eq('channel_id', currentView.channelId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      const reqCount = (requests || []).length;
+
+      if (reqCount > 0) {
+        channelRequestsSection.classList.remove('hidden');
+        channelRequestsCount.textContent = `${reqCount} pending request${reqCount !== 1 ? 's' : ''}`;
+
+        channelRequestsList.innerHTML = (requests || []).map(r => `
+          <div class="channel-request-item" data-request-id="${r.id}" data-user-id="${sanitize(r.user_id)}">
+            <div class="channel-member-avatar">${getAvatarHtml(r.user_id, r.users.username)}</div>
+            <span class="channel-member-name">${sanitize(r.users.username)}</span>
+            <div class="channel-request-actions">
+              <button class="btn-request-approve" data-request-id="${r.id}" data-user-id="${sanitize(r.user_id)}" data-channel-id="${sanitize(currentView.channelId)}" title="Approve"><i class="fas fa-check"></i></button>
+              <button class="btn-request-reject" data-request-id="${r.id}" title="Reject"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        channelRequestsSection.classList.add('hidden');
+      }
+    } else {
+      channelRequestsSection.classList.add('hidden');
+    }
+
     btnDeleteChannel.classList.toggle('hidden', !isCreator);
     btnLeaveChannel.classList.toggle('hidden', isCreator);
+  });
+
+  // Approve / Reject join requests
+  channelRequestsList.addEventListener('click', async (e) => {
+    const approveBtn = e.target.closest('.btn-request-approve');
+    const rejectBtn = e.target.closest('.btn-request-reject');
+
+    if (approveBtn) {
+      const requestId = approveBtn.dataset.requestId;
+      const userId = approveBtn.dataset.userId;
+      const channelId = approveBtn.dataset.channelId;
+
+      // Add user as member
+      await sb.from('channel_members').insert([{
+        channel_id: channelId,
+        user_id: userId,
+        role: 'member'
+      }]);
+
+      // Update request status
+      await sb.from('channel_join_requests')
+        .update({ status: 'approved' })
+        .eq('id', requestId);
+
+      // Remove from UI
+      const item = approveBtn.closest('.channel-request-item');
+      if (item) item.remove();
+
+      // Update count
+      const remaining = channelRequestsList.querySelectorAll('.channel-request-item').length;
+      if (remaining === 0) {
+        channelRequestsSection.classList.add('hidden');
+      } else {
+        channelRequestsCount.textContent = `${remaining} pending request${remaining !== 1 ? 's' : ''}`;
+      }
+
+      // Refresh member list
+      btnChannelInfo.click();
+    }
+
+    if (rejectBtn) {
+      const requestId = rejectBtn.dataset.requestId;
+
+      await sb.from('channel_join_requests')
+        .update({ status: 'rejected' })
+        .eq('id', requestId);
+
+      const item = rejectBtn.closest('.channel-request-item');
+      if (item) item.remove();
+
+      const remaining = channelRequestsList.querySelectorAll('.channel-request-item').length;
+      if (remaining === 0) {
+        channelRequestsSection.classList.add('hidden');
+      } else {
+        channelRequestsCount.textContent = `${remaining} pending request${remaining !== 1 ? 's' : ''}`;
+      }
+    }
   });
 
   btnCloseChannelInfo.addEventListener('click', () => {
@@ -500,7 +682,6 @@ window.Convo = window.Convo || {};
         await sb.from('channel_members').delete()
           .eq('channel_id', currentView.channelId)
           .eq('user_id', userId);
-        // Refresh channel info
         btnChannelInfo.click();
       }
     );
@@ -533,6 +714,7 @@ window.Convo = window.Convo || {};
       'Delete Channel',
       `Permanently delete <span class="highlight-name">#${sanitize(currentView.channelName)}</span> and all its messages? This cannot be undone.`,
       async () => {
+        await sb.from('channel_join_requests').delete().eq('channel_id', currentView.channelId);
         await sb.from('channel_messages').delete().eq('channel_id', currentView.channelId);
         await sb.from('channel_members').delete().eq('channel_id', currentView.channelId);
         await sb.from('channels').delete().eq('id', currentView.channelId);

@@ -143,6 +143,22 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
   ALTER PUBLICATION supabase_realtime ADD TABLE channel_messages;
 
+  -- Channel Join Requests table (for private channels)
+  CREATE TABLE channel_join_requests (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    channel_id text REFERENCES channels(id) ON DELETE CASCADE NOT NULL,
+    user_id text REFERENCES users(id) NOT NULL,
+    status text DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at timestamptz DEFAULT now(),
+    UNIQUE(channel_id, user_id)
+  );
+
+  ALTER TABLE channel_join_requests ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "Anyone can read channel_join_requests" ON channel_join_requests FOR SELECT USING (true);
+  CREATE POLICY "Anyone can insert channel_join_requests" ON channel_join_requests FOR INSERT WITH CHECK (true);
+  CREATE POLICY "Anyone can update channel_join_requests" ON channel_join_requests FOR UPDATE USING (true);
+  CREATE POLICY "Anyone can delete channel_join_requests" ON channel_join_requests FOR DELETE USING (true);
+
   3. Go to Settings → API and copy your URL + anon key above.
 */
 

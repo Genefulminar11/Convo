@@ -1,0 +1,141 @@
+<!-- MAIN CHAT AREA -->
+<main class="chat-main">
+
+  <!-- Chat Header -->
+  <header class="chat-header">
+    <button class="sidebar-open-btn d-lg-none" id="sidebarOpenBtn">
+      <i class="fas fa-bars"></i>
+    </button>
+    <button class="btn-back-chat hidden" id="btnBackChat" title="Back to General">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <div class="chat-header-info">
+      <h5 class="chat-room-name" id="chatRoomName">
+        <span id="chatRoomIcon"><i class="fas fa-hashtag me-1"></i></span> <span id="chatRoomTitle">general</span>
+        <span class="dm-status-dot hidden" id="dmStatusDot"></span>
+      </h5>
+      <span class="chat-room-desc" id="chatRoomDesc">Public chat room – say hello!</span>
+    </div>
+    <div class="chat-header-actions">
+      <div class="call-buttons hidden" id="callButtons">
+        <button class="btn-call" id="btnVoiceCall" title="Voice Call">
+          <i class="fas fa-phone"></i>
+        </button>
+        <button class="btn-call" id="btnVideoCall" title="Video Call">
+          <i class="fas fa-video"></i>
+        </button>
+      </div>
+      <div class="channel-header-actions hidden" id="channelHeaderActions">
+        <button class="btn-header-action" id="btnChannelInfo" title="Channel Info">
+          <i class="fas fa-info-circle"></i>
+        </button>
+      </div>
+      <button class="btn-header-action hidden" id="btnSearchChat" title="Search in conversation">
+        <i class="fas fa-search"></i>
+      </button>
+      <div class="header-menu-wrap hidden" id="headerMenuWrap">
+        <button class="btn-header-action" id="btnHeaderMenu" title="More options">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <div class="header-dropdown hidden" id="headerDropdown">
+          <button class="header-dropdown-item" id="btnDeleteConvo">
+            <i class="fas fa-trash"></i> Delete Conversation
+          </button>
+          <button class="header-dropdown-item danger" id="btnBlockUser">
+            <i class="fas fa-ban"></i> Block User
+          </button>
+          <button class="header-dropdown-item hidden" id="btnUnblockUser">
+            <i class="fas fa-unlock"></i> Unblock User
+          </button>
+        </div>
+      </div>
+      <button class="btn-header-action btn-clear-all hidden" id="btnClearAllMsgs" title="Clear all messages">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+      <span class="online-count" id="onlineCount">
+        <i class="fas fa-users me-1"></i> <span id="userCountNum">0</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- Chat Search Bar -->
+  <div class="chat-search-bar hidden" id="chatSearchBar">
+    <div class="chat-search-inner">
+      <i class="fas fa-search"></i>
+      <input type="text" id="chatSearchInput" placeholder="Search in conversation..." autocomplete="off">
+      <span class="chat-search-count hidden" id="chatSearchCount">0/0</span>
+      <button class="chat-search-nav" id="btnSearchPrev" title="Previous"><i class="fas fa-chevron-up"></i></button>
+      <button class="chat-search-nav" id="btnSearchNext" title="Next"><i class="fas fa-chevron-down"></i></button>
+      <button class="chat-search-close" id="btnSearchClose" title="Close search"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <!-- Messages Area -->
+  <div class="chat-messages" id="chatMessages">
+    <div class="system-message" id="welcomeMsg">
+      <i class="fas fa-hand-wave"></i>
+      Welcome to <strong>Convo</strong>! Messages are loaded in real-time.
+    </div>
+  </div>
+
+  <!-- Blocked Banner -->
+  <div class="blocked-banner hidden" id="blockedBanner">
+    <div class="blocked-banner-text">
+      <i class="fas fa-ban"></i>
+      <span id="blockedBannerMsg">You blocked this user</span>
+    </div>
+    <p class="blocked-banner-sub" id="blockedBannerSub">You can't message or call them in this chat, and you won't receive their messages or calls.</p>
+    <button class="blocked-banner-btn" id="btnBannerUnblock">Unblock</button>
+  </div>
+
+  <!-- Message Input -->
+  <div class="chat-input-area" id="chatInputArea">
+    <div class="reply-bar hidden" id="replyBar">
+      <div class="reply-bar-info">
+        <i class="fas fa-reply reply-bar-icon"></i>
+        <div class="reply-bar-text">
+          <span class="reply-bar-name" id="replyBarName"></span>
+          <span class="reply-bar-content" id="replyBarContent"></span>
+        </div>
+      </div>
+      <button type="button" class="reply-bar-close" id="replyBarClose">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form id="messageForm" autocomplete="off">
+      <div class="input-wrapper">
+        <div class="emoji-picker-wrapper">
+          <button type="button" class="btn-input-icon btn-emoji" id="btnEmoji" title="Emoji">
+            <i class="fas fa-smile"></i>
+          </button>
+          <div class="emoji-panel hidden" id="emojiPanel"></div>
+        </div>
+        <input
+          type="text"
+          id="messageInput"
+          class="message-input"
+          placeholder="Type a message..."
+          maxlength="1000"
+        >
+        <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar" class="hidden">
+        <button type="button" class="btn-input-icon btn-attach" id="btnAttach" title="Attach file (max 10MB)">
+          <i class="fas fa-paperclip"></i>
+        </button>
+        <button type="submit" class="btn-send" id="btnSend" title="Send message">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+      <div class="file-preview hidden" id="filePreview">
+        <div class="file-preview-info">
+          <i class="fas fa-file file-preview-icon"></i>
+          <span class="file-preview-name" id="filePreviewName"></span>
+          <span class="file-preview-size" id="filePreviewSize"></span>
+        </div>
+        <button type="button" class="btn-file-remove" id="btnFileRemove" title="Remove">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+</main>

@@ -1,0 +1,76 @@
+<!-- Create Channel Modal -->
+<div class="modal-overlay hidden" id="createChannelModal">
+  <div class="modal-box channel-modal-box">
+    <button class="channel-modal-close" id="btnCloseCreateChannel"><i class="fas fa-times"></i></button>
+    <div class="modal-header-custom">
+      <i class="fas fa-bullhorn modal-icon"></i>
+      <h4>Create Channel</h4>
+      <p>Create a channel for group conversations</p>
+    </div>
+    <form id="createChannelForm">
+      <input type="text" id="createChannelName" class="modal-input" placeholder="Channel name" maxlength="50" minlength="2" required autofocus>
+      <textarea id="createChannelDesc" class="modal-input modal-textarea" placeholder="Description (optional)" maxlength="200" rows="3"></textarea>
+      <div class="channel-visibility-toggle">
+        <label class="visibility-option">
+          <input type="radio" name="channelVisibility" value="public" checked>
+          <div class="visibility-card">
+            <i class="fas fa-globe"></i>
+            <strong>Public</strong>
+          </div>
+        </label>
+        <label class="visibility-option">
+          <input type="radio" name="channelVisibility" value="private">
+          <div class="visibility-card">
+            <i class="fas fa-lock"></i>
+            <strong>Private</strong>
+          </div>
+        </label>
+      </div>
+      <div class="auth-error hidden" id="createChannelError"></div>
+      <button type="submit" class="modal-btn"><i class="fas fa-plus me-2"></i> Create Channel</button>
+    </form>
+  </div>
+</div>
+
+<!-- Browse Channels Modal -->
+<div class="modal-overlay hidden" id="browseChannelsModal">
+  <div class="modal-box browse-channels-box">
+    <button class="channel-modal-close" id="btnCloseBrowseChannels"><i class="fas fa-times"></i></button>
+    <div class="modal-header-custom">
+      <i class="fas fa-compass modal-icon"></i>
+      <h4>Browse Channels</h4>
+      <p>Discover and join channels</p>
+    </div>
+    <div class="browse-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" id="browseChannelsSearch" class="modal-input" placeholder="Search channels..." autocomplete="off">
+    </div>
+    <div class="browse-channels-list" id="browseChannelsList"></div>
+  </div>
+</div>
+
+<!-- Channel Info Modal -->
+<div class="modal-overlay hidden" id="channelInfoModal">
+  <div class="modal-box channel-info-box">
+    <button class="channel-modal-close" id="btnCloseChannelInfo"><i class="fas fa-times"></i></button>
+    <div class="channel-info-header">
+      <div class="channel-info-icon"><i class="fas fa-bullhorn"></i></div>
+      <h4 id="channelInfoName">Channel</h4>
+      <p id="channelInfoDesc">Description</p>
+      <span class="channel-visibility-badge" id="channelInfoBadge"><i class="fas fa-globe me-1"></i>Public</span>
+    </div>
+    <div class="channel-info-section">
+      <h6 id="channelInfoMemberCount">0 members</h6>
+      <div class="channel-members-list" id="channelInfoMembers"></div>
+    </div>
+    <!-- Pending Join Requests (visible to creator only) -->
+    <div class="channel-info-section hidden" id="channelRequestsSection">
+      <h6 id="channelRequestsCount">0 pending requests</h6>
+      <div class="channel-requests-list" id="channelRequestsList"></div>
+    </div>
+    <div class="channel-info-actions">
+      <button class="modal-btn modal-btn-outline" id="btnLeaveChannel"><i class="fas fa-sign-out-alt me-2"></i>Leave Channel</button>
+      <button class="modal-btn btn-danger hidden" id="btnDeleteChannel"><i class="fas fa-trash me-2"></i>Delete Channel</button>
+    </div>
+  </div>
+</div>

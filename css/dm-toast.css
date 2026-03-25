@@ -1,0 +1,84 @@
+/* ===================== DM Notification Toast ===================== */
+.dm-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  z-index: 11000;
+  cursor: pointer;
+  max-width: 320px;
+  transform: translateX(120%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 4px solid #0d6efd;
+}
+
+.dm-toast.show {
+  transform: translateX(0);
+}
+
+.dm-toast.hidden {
+  display: flex !important;
+  transform: translateX(120%);
+}
+
+.dm-toast-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.dm-toast-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.dm-toast-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.dm-toast-msg {
+  display: block;
+  font-size: 0.78rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===================== Dark Mode - DM Toast ===================== */
+[data-theme="dark"] .dm-toast {
+  background: #1e2a4a;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  border-left-color: #4da6ff;
+}
+
+[data-theme="dark"] .dm-toast-avatar {
+  background: #4da6ff;
+}
+
+[data-theme="dark"] .dm-toast-name {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .dm-toast-msg {
+  color: #94a3b8;
+}

@@ -1,0 +1,82 @@
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-inner">
+
+    <!-- App Logo / Brand -->
+    <div class="brand">
+      <i class="fas fa-comments"></i>
+      <span class="brand-name">Convo</span>
+    </div>
+
+    <!-- User Profile -->
+    <div class="user-profile" id="userProfile">
+      <div class="user-avatar" id="userAvatar">
+        <i class="fas fa-user"></i>
+      </div>
+      <div class="user-info-col">
+        <span class="user-name" id="userName">Guest</span>
+        <span class="user-id-small" id="userIdSmall"></span>
+      </div>
+      <button class="btn-settings" id="btnSettings" title="Settings">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+
+    <!-- Search Users -->
+    <div class="search-section">
+      <div class="search-input-wrapper">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Search users..." class="search-input" autocomplete="off">
+      </div>
+      <div class="search-results hidden" id="searchResults"></div>
+    </div>
+
+    <!-- Conversations & Contacts -->
+    <div class="conversations-section">
+      <div class="conv-item active" id="convGeneral">
+        <div class="conv-icon general-icon"><i class="fas fa-hashtag"></i></div>
+        <div class="conv-info">
+          <span class="conv-name">General</span>
+          <span class="conv-preview">Public chat room</span>
+        </div>
+      </div>
+      <!-- Channels Section -->
+      <div class="channels-label" id="channelsLabel">
+        <span>Channels</span>
+        <div class="channels-label-actions">
+          <button class="btn-channel-action" id="btnBrowseChannels" title="Browse Channels"><i class="fas fa-compass"></i></button>
+          <button class="btn-channel-action" id="btnCreateChannel" title="Create Channel"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+      <div id="channelsList"></div>
+      <div class="contacts-label hidden" id="contactsLabel">
+        <span>Contacts</span>
+      </div>
+      <div id="contactsList"></div>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <!-- Admin Panel Button (admin only) -->
+      <button class="btn-admin hidden" id="btnAdmin" title="Admin Panel">
+        <i class="fas fa-shield-alt"></i>
+      </button>
+      <!-- Theme Toggle -->
+      <label class="theme-switch" title="Toggle dark mode">
+        <input type="checkbox" id="themeToggle">
+        <span class="theme-slider">
+          <i class="fas fa-sun theme-icon-sun"></i>
+          <i class="fas fa-moon theme-icon-moon"></i>
+        </span>
+      </label>
+      <button class="btn-logout" id="btnLogout" title="Clear session">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile toggle -->
+  <button class="sidebar-toggle d-lg-none" id="sidebarToggle">
+    <i class="fas fa-bars"></i>
+  </button>
+</aside>
